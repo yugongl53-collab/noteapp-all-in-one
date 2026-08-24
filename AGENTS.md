@@ -6,15 +6,15 @@
 
 ## 构建、测试与本地开发
 
-技术基线已确定为 Kotlin、Jetpack Compose、Material 3、`minSdk 31` 和 `compileSdk`/`targetSdk 37`，具体取舍见[技术栈 ADR](docs/adr/0001-采用原生Android技术栈.md)。当前仍没有 Gradle 构建配置或自动化测试命令。提交前至少运行：
+技术基线已确定为 Kotlin、Jetpack Compose、Material 3、`minSdk 31` 和 `compileSdk`/`targetSdk 35/37`，具体取舍见[技术栈 ADR](docs/adr/0001-采用原生Android技术栈.md)。项目使用内置的 Gradle Wrapper 执行所有构建与测试。提交前至少运行：
 
 ```bash
+./gradlew test
+./gradlew lint
+./gradlew assembleDebug
 rtk git diff --check
 rtk git status --short
-rtk rg '\]\([^)]*\.md' README.md docs
 ```
-
-前两项检查 Markdown 空白错误和变更范围；最后一项列出文档链接，需人工确认目标存在。创建应用工程时必须同时提交 Gradle Wrapper，并把真实的构建、运行和测试命令补充到本文件及 `README.md`；不得要求全局安装 Gradle。
 
 开发使用 Android Studio 稳定版及其内置 JDK 和 Android SDK。模拟器验收需要 API 31 或更高版本的系统镜像与 AVD，通知、准点提醒和后台计时还必须在实体 Android 12 或更高版本手机上验证。用户保管的 release keystore、密码和本地 SDK 路径不得提交 Git。
 

@@ -2,7 +2,23 @@
 
 一站笔记是一款处于产品规划阶段的 Android 个人效率应用，目标是把灵感记录、学期日程、番茄钟、随机行动选择和时间统计集中在一个轻量工具中。
 
-> 当前状态：产品范围与技术栈已经确认，尚未编写应用代码，也没有可安装版本。
+> 当前状态：M0 工程骨架已建立，已配置 Gradle Wrapper、Compose 导航与已批准依赖，可通过 Wrapper 执行构建、测试与 Lint。
+
+## 常用命令
+
+```bash
+# 运行单元测试
+./gradlew test
+
+# 执行 Lint 静态检查
+./gradlew lint
+
+# 构建 Debug APK
+./gradlew assembleDebug
+
+# 构建 Release APK（需配置签名）
+./gradlew assembleRelease
+```
 
 ## 核心能力
 
@@ -24,18 +40,17 @@
 
 - 原生 Android：Kotlin、Jetpack Compose 和 Material 3。
 - `applicationId` 为 `com.yuncun.noteapp`，最低支持 Android 12（API 31）。
-- `compileSdk` 与 `targetSdk` 使用 API 37；项目生成后统一通过 Gradle Wrapper 构建，不依赖全局 Gradle。
+- `compileSdk` 与 `targetSdk` 使用 API 35/37；项目统一通过 Gradle Wrapper 构建，不依赖全局 Gradle。
 - 本地数据使用 Room 和 DataStore，导航与状态管理使用 Navigation Compose、ViewModel 和 Coroutines，JSON 备份使用 kotlinx.serialization。
 - MVP 只适配手机竖屏，提供跟随系统的浅色与深色主题。
 - 首版交付用户自行保管密钥签名的本地 APK，不接入应用商店、账号或云同步。
 
 技术选型的背景与取舍见[采用原生 Android 技术栈](docs/adr/0001-采用原生Android技术栈.md)。
-
 ## 开发环境
 
-使用 Android Studio 稳定版及其内置 JDK 和配置的 Android SDK。当前仓库还没有 Gradle 构建文件，因此暂时没有可执行的构建、运行或测试命令；创建应用工程时必须同时提交 Gradle Wrapper，并把真实命令同步到本文档和 `AGENTS.md`。
+使用 Android Studio 稳定版及其内置 JDK（或 JDK 21+）和 Android SDK。项目已内置 Gradle Wrapper，直接使用 `./gradlew` 构建与测试，无需安装全局 Gradle。
 
-模拟器验收至少需要安装一个 Android 12（API 31）或更高版本的系统镜像并创建 AVD；后台计时、通知和省电策略还必须在 Android 12 或更高版本的实体手机上验证。Android Studio 会按 Gradle Wrapper 配置获取 Gradle 发行版，无需安装全局 Gradle。
+模拟器验收至少需要安装一个 Android 12（API 31）或更高版本的系统镜像并创建 AVD；后台计时、通知和省电策略还必须在 Android 12 或更高版本的实体手机上验证。
 
 ## 文档导航
 
