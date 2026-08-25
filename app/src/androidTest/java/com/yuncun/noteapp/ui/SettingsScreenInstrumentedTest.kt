@@ -41,18 +41,13 @@ class SettingsScreenInstrumentedTest {
     }
 
     @Test
-    fun backupActions_showPlaintextWarningAndReplacementSummary() {
+    fun exportAction_showsPlaintextWarningBeforeChoosingLocation() {
         var exportRequested = false
-        var importConfirmed = false
         composeRule.setContent {
             NoteAppTheme {
                 SettingsScreen(
-                    backupState = BackupUiState(
-                        showExportWarning = true,
-                        pendingImport = BackupSummary("backup.json", 2, 1, 1, 3, 4, 5)
-                    ),
-                    onConfirmExportWarning = { exportRequested = true },
-                    onConfirmImport = { importConfirmed = true }
+                    backupState = BackupUiState(showExportWarning = true),
+                    onConfirmExportWarning = { exportRequested = true }
                 )
             }
         }
@@ -60,6 +55,22 @@ class SettingsScreenInstrumentedTest {
         composeRule.onNodeWithText("导出明文个人数据").assertIsDisplayed()
         composeRule.onNodeWithText("选择保存位置").performClick()
         assertTrue(exportRequested)
+    }
+
+    @Test
+    fun validatedImport_showsReplacementSummaryBeforeCommit() {
+        var importConfirmed = false
+        composeRule.setContent {
+            NoteAppTheme {
+                SettingsScreen(
+                    backupState = BackupUiState(
+                        pendingImport = BackupSummary("backup.json", 2, 1, 1, 3, 4, 5)
+                    ),
+                    onConfirmImport = { importConfirmed = true }
+                )
+            }
+        }
+
         composeRule.onNodeWithText("替换全部现有数据？").assertIsDisplayed()
         composeRule.onNodeWithText("确认替换").performClick()
         assertTrue(importConfirmed)

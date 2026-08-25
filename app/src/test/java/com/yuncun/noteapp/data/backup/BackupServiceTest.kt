@@ -65,6 +65,33 @@ class BackupServiceTest {
         )
     }
 
+    @Test
+    fun failedReminderCancellation_abortsImportAndResynchronizesOldData() = runTest {
+        val events = mutableListOf<String>()
+        val preferences = FakePreferences(events = events)
+        val gateway = FakeGateway(events = events)
+        val reminders = FakeReminders(events, failCancellation = true)
+        val service = BackupService(gateway, preferences, reminders, clock = { NOW })
+
+        val failure = runCatching { service.import(emptySnapshot(AppSettings(30, 10))) }
+
+        assertTrue(failure.isFailure)
+        assertTrue("replace" !in events)
+        assertEquals(listOf("cancel", "settings:25/5", "synchronize"), events)
+    }
+
+    @Test
+    fun failedReminderRebuild_reportsPartialSystemFailureAfterCommittedImport() = runTest {
+        val events = mutableListOf<String>()
+        val reminders = FakeReminders(events, failSynchronization = true)
+        val service = BackupService(FakeGateway(events), FakePreferences(events = events), reminders, clock = { NOW })
+
+        val result = service.import(emptySnapshot(AppSettings(30, 10)))
+
+        assertEquals("模拟提醒重建失败", result.reminderError)
+        assertTrue("commit" in events)
+    }
+
     private class FakeGateway(
         private val events: MutableList<String> = mutableListOf(),
         private val failAfterSettings: Boolean = false
@@ -108,13 +135,21 @@ class BackupServiceTest {
         }
     }
 
-    private class FakeReminders(private val events: MutableList<String>) : ReminderCoordinator {
+    private class FakeReminders(
+        private val events: MutableList<String>,
+        private val failCancellation: Boolean = false,
+        private val failSynchronization: Boolean = false
+    ) : ReminderCoordinator {
         private val permissions = MutableStateFlow(ReminderPermissionState())
         override val permissionState: StateFlow<ReminderPermissionState> = permissions.asStateFlow()
         override fun refreshPermissionState() = Unit
-        override suspend fun cancelScheduled() { events += "cancel" }
+        override suspend fun cancelScheduled() {
+            events += "cancel"
+            if (failCancellation) error("模拟提醒取消失败")
+        }
         override suspend fun synchronize(): ReminderSyncResult {
             events += "synchronize"
+            if (failSynchronization) error("模拟提醒重建失败")
             return ReminderSyncResult(permissions.value)
         }
         override suspend fun handleTriggered(candidate: ReminderCandidate) = Unit

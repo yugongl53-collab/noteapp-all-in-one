@@ -41,8 +41,8 @@ class BackupService(
         requireNoActivePomodoro()
         codec.validateSnapshot(snapshot)
         val previousSettings = preferencesStore.settings.first()
-        reminderCoordinator.cancelScheduled()
         val expiredIdeasRemoved = try {
+            reminderCoordinator.cancelScheduled()
             dataGateway.replace(snapshot, clock().minusSeconds(RECYCLE_RETENTION_SECONDS)) {
                 preferencesStore.updateSettings(snapshot.appSettings)
             }
@@ -54,8 +54,10 @@ class BackupService(
                 .exceptionOrNull()?.let(error::addSuppressed)
             throw error
         }
-        val reminderResult = reminderCoordinator.synchronize()
-        return BackupImportResult(expiredIdeasRemoved, reminderResult.errorMessage)
+        // 数据已经提交后，系统提醒适配失败只能明确报告，不能误称原数据仍保留。
+        val reminderError = runCatching { reminderCoordinator.synchronize() }
+            .fold({ it.errorMessage }, { it.message ?: "系统提醒重建失败" })
+        return BackupImportResult(expiredIdeasRemoved, reminderError)
     }
 
     private suspend fun requireNoActivePomodoro() {
