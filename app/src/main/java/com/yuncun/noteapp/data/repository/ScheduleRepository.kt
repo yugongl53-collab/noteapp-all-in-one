@@ -9,6 +9,8 @@ import com.yuncun.noteapp.data.local.entity.ScheduleTaskEntity
 import com.yuncun.noteapp.domain.model.EventCategory
 import com.yuncun.noteapp.domain.model.ScheduleType
 import com.yuncun.noteapp.domain.model.TermSeason
+import com.yuncun.noteapp.domain.model.TermPeriod
+import com.yuncun.noteapp.domain.rules.AcademicCalendarRules
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -81,6 +83,16 @@ class RoomScheduleRepository(
 
     override suspend fun saveTerm(id: String?, input: AcademicTermInput, now: Instant): String {
         val existing = id?.let { requireNotNull(termDao.findById(it)) { "学期不存在" } }
+        require(input.endDate >= input.startDate) { "学期结束日期不能早于开始日期" }
+        if (id != null) {
+            val weekCount = AcademicCalendarRules.actualWeekCount(
+                TermPeriod(id, input.academicYearStart, input.season, input.startDate, input.endDate)
+            )
+            // 学期缩短不能让已有课程的闭区间周次变成悬空配置。
+            require(courseDao.getAll().filter { it.termId == id }.all { it.endWeek <= weekCount }) {
+                "学期范围过短，现有课程周次将超出学期"
+            }
+        }
         val entity = AcademicTermEntity(
             id = existing?.id ?: idFactory(),
             academicYearStart = input.academicYearStart,

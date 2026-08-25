@@ -119,7 +119,8 @@ fun TermSummary(term: AcademicTermEntity) {
 
 @Composable
 fun TaskSummary(task: ScheduleTaskEntity) {
-    Text(task.title, style = MaterialTheme.typography.titleMedium)
+    val typeName = if (task.type == ScheduleType.WEEKLY) "每周循环" else "单次事件"
+    Text("$typeName · ${task.title}", style = MaterialTheme.typography.titleMedium)
     val applicable = if (task.type == ScheduleType.WEEKLY) {
         task.weekdays.sortedBy { it.value }.joinToString("、") { "周${weekdayLabels[it]}" }
     } else task.date.toString()

@@ -150,7 +150,7 @@ fun ScheduleScreen(
     when (manager) {
         ScheduleManager.TASKS -> EntityManagerDialog(
             title = "普通事件配置",
-            items = state.tasks,
+            items = state.tasks.sortedWith(compareBy({ it.type }, { it.title }, { it.id })),
             itemContent = { TaskSummary(it) },
             onAdd = { createTask = true },
             onEdit = { editingTask = it },
@@ -160,7 +160,7 @@ fun ScheduleScreen(
         )
         ScheduleManager.COURSES -> EntityManagerDialog(
             title = "课程配置",
-            items = state.courses,
+            items = state.courses.sortedWith(compareBy({ it.termId }, { it.courseName }, { it.id })),
             itemContent = { CourseSummary(it, state.terms) },
             onAdd = { createCourse = true },
             onEdit = { editingCourse = it },

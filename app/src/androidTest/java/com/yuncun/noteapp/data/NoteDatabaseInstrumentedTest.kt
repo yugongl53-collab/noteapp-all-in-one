@@ -15,6 +15,8 @@ import com.yuncun.noteapp.data.local.entity.TimeRecordEntity
 import com.yuncun.noteapp.domain.model.EventCategory
 import com.yuncun.noteapp.domain.model.ScheduleType
 import com.yuncun.noteapp.domain.model.TermSeason
+import com.yuncun.noteapp.data.repository.AcademicTermInput
+import com.yuncun.noteapp.data.repository.RoomScheduleRepository
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -121,6 +123,29 @@ class NoteDatabaseInstrumentedTest {
         }
         assertTrue(failure.isFailure)
         assertTrue(database.courseScheduleDao().getAll().isEmpty())
+    }
+
+    @Test
+    fun scheduleRepository_rejectsTermEditThatInvalidatesExistingCourseWeeks() = runBlocking {
+        val now = Instant.parse("2026-08-25T00:00:00Z")
+        database.academicTermDao().save(term("term", "2026-09-01", "2027-01-15", now))
+        database.courseScheduleDao().save(course(now))
+        val repository = RoomScheduleRepository(
+            database.academicTermDao(), database.scheduleTaskDao(), database.courseScheduleDao()
+        )
+
+        val failure = runCatching {
+            repository.saveTerm(
+                "term",
+                AcademicTermInput(
+                    2026, TermSeason.FALL, LocalDate.parse("2026-09-01"), LocalDate.parse("2026-09-02")
+                ),
+                now.plusSeconds(60)
+            )
+        }
+
+        assertTrue(failure.isFailure)
+        assertEquals(LocalDate.parse("2027-01-15"), database.academicTermDao().findById("term")?.endDate)
     }
 
     @Test
