@@ -40,7 +40,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     reminderPermissions: ReminderPermissionState = ReminderPermissionState(),
     backupState: BackupUiState = BackupUiState(),
-    onBack: () -> Unit = {},
+    onBack: (() -> Unit)? = null,
     onRequestNotificationPermission: () -> Unit = {},
     onOpenExactAlarmSettings: () -> Unit = {},
     onRequestExport: () -> Unit = {},
@@ -56,8 +56,10 @@ fun SettingsScreen(
             TopAppBar(
                 title = { Text("设置") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        }
                     }
                 }
             )
@@ -93,6 +95,19 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                }
+            }
+
+            // 外观与主题
+            Text("外观与主题", style = MaterialTheme.typography.headlineSmall)
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("系统跟随模式", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "应用已开启自动跟随系统浅色或深色主题，并在 Android 12+ 设备上自动适配系统壁纸动态取色。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 

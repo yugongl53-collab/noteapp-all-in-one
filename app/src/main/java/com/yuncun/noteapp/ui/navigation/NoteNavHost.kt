@@ -51,11 +51,9 @@ import com.yuncun.noteapp.ui.screens.PomodoroScreen
 import com.yuncun.noteapp.ui.screens.PomodoroCompactBar
 import com.yuncun.noteapp.ui.screens.ScheduleScreen
 import com.yuncun.noteapp.ui.screens.SettingsScreen
-import com.yuncun.noteapp.ui.screens.StatisticsScreen
-import com.yuncun.noteapp.ui.screens.TodayScreen
 
 /**
- * 主界面脚手架与顶层底栏导航容器
+ * 主界面脚手架与顶层底栏导航容器（日程、灵感、工具箱、设置四大主Tab）
  */
 @Composable
 fun NoteNavHost(modifier: Modifier = Modifier) {
@@ -152,14 +150,15 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            if (Screen.bottomNavItems.any { it.route == currentRoute }) {
+            if (Screen.bottomNavItems.any { it.route == currentRoute || (it == Screen.Toolbox && currentRoute?.startsWith("toolbox") == true) }) {
                 NavigationBar {
                     Screen.bottomNavItems.forEach { screen ->
-                        val selected = currentRoute == screen.route
+                        val selected = currentRoute == screen.route ||
+                            (screen == Screen.Toolbox && currentRoute?.startsWith("toolbox") == true)
                         NavigationBarItem(
                             selected = selected,
                             onClick = {
-                                if (currentRoute != screen.route) {
+                                if (!selected) {
                                     navController.navigate(screen.route) {
                                         // 弹出到导航栈起始位置，避免底栏堆积过多回退状态
                                         popUpTo(navController.graph.findStartDestination().id) {
@@ -179,172 +178,180 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
         }
     ) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Today.route,
-            modifier = Modifier.weight(1f)
-        ) {
-            composable(Screen.Today.route) {
-                TodayScreen(
-                    draft = quickDraft,
-                    onContentChange = ideaViewModel::updateQuickContent,
-                    onTagsChange = ideaViewModel::updateQuickTags,
-                    onSave = ideaViewModel::saveQuickIdea,
-                    onOpenIdeas = { navController.navigate(Screen.Idea.route) },
-                    onOpenEventPool = { navController.navigate(PomodoroRoutes.pool()) },
-                    onOpenPomodoro = { navController.navigate(PomodoroRoutes.timer()) },
-                    onOpenSettings = { navController.navigate(Screen.Settings.route) }
-                )
-            }
-            composable(Screen.Idea.route) {
-                IdeaScreen(
-                    state = ideaState,
-                    onBack = navController::popBackStack,
-                    onAdd = { navController.navigate(IdeaRoutes.edit()) },
-                    onEdit = { navController.navigate(IdeaRoutes.edit(it)) },
-                    onOpenTrash = { navController.navigate(IdeaRoutes.TRASH) }
-                )
-            }
-            composable(
-                route = IdeaRoutes.EDIT_PATTERN,
-                arguments = listOf(navArgument("ideaId") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val ideaId = backStackEntry.arguments?.getString("ideaId")
-                    ?.takeUnless { it == IdeaRoutes.NEW_ID }
-                IdeaEditScreen(
-                    draft = editorDraft,
-                    state = ideaState,
-                    onPrepare = { ideaViewModel.prepareEditor(ideaId) },
-                    onContentChange = ideaViewModel::updateEditorContent,
-                    onTagsChange = ideaViewModel::updateEditorTags,
-                    onSave = ideaViewModel::saveEditor,
-                    onMoveToTrash = ideaViewModel::moveToTrash,
-                    onBack = navController::popBackStack
-                )
-            }
-            composable(IdeaRoutes.TRASH) {
-                IdeaTrashScreen(
-                    state = ideaState,
-                    onBack = navController::popBackStack,
-                    onRestore = ideaViewModel::restore,
-                    onPermanentlyDelete = ideaViewModel::permanentlyDelete
-                )
-            }
-            composable(Screen.Schedule.route) {
-                ScheduleScreen(
-                    state = scheduleState,
-                    onSelectView = scheduleViewModel::selectView,
-                    onPreviousWeek = scheduleViewModel::previousWeek,
-                    onNextWeek = scheduleViewModel::nextWeek,
-                    onCurrentWeek = scheduleViewModel::currentWeek,
-                    onSaveTerm = scheduleViewModel::saveTerm,
-                    onDeleteTerm = scheduleViewModel::deleteTerm,
-                    onSaveTask = scheduleViewModel::saveTask,
-                    onDeleteTask = scheduleViewModel::deleteTask,
-                    onSaveCourse = scheduleViewModel::saveCourse,
-                    onDeleteCourse = scheduleViewModel::deleteCourse,
-                    onConfirmOverlap = scheduleViewModel::confirmOverlapSave,
-                    onCancelOverlap = scheduleViewModel::cancelOverlapSave,
-                    reminderPermissions = reminderPermissions,
-                    onOpenReminderSettings = { navController.navigate(Screen.Settings.route) }
-                )
-            }
-            composable(
-                route = PomodoroRoutes.PATTERN,
-                arguments = listOf(navArgument("section") { type = NavType.StringType })
-            ) { backStackEntry ->
-                PomodoroScreen(
-                    state = pomodoroState,
-                    initialSection = backStackEntry.arguments?.getString("section") ?: "timer",
-                    notificationGranted = reminderPermissions.notificationGranted,
-                    onBack = navController::popBackStack,
-                    onSavePoolItem = pomodoroViewModel::savePoolItem,
-                    onSetPoolItemEnabled = pomodoroViewModel::setPoolItemEnabled,
-                    onDeletePoolItem = pomodoroViewModel::deletePoolItem,
-                    onDraw = pomodoroViewModel::draw,
-                    onStart = pomodoroViewModel::startPomodoro,
-                    onPause = pomodoroViewModel::pause,
-                    onResume = pomodoroViewModel::resume,
-                    onReset = pomodoroViewModel::reset,
-                    onFinishEarly = pomodoroViewModel::finishEarly,
-                    onStartRest = pomodoroViewModel::startRest,
-                    onClearSession = pomodoroViewModel::clearSession,
-                    onRequestNotificationPermission = {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            NavHost(
+                navController = navController,
+                startDestination = Screen.Schedule.route,
+                modifier = Modifier.weight(1f)
+            ) {
+                composable(Screen.Schedule.route) {
+                    ScheduleScreen(
+                        state = scheduleState,
+                        onSelectView = scheduleViewModel::selectView,
+                        onPreviousWeek = scheduleViewModel::previousWeek,
+                        onNextWeek = scheduleViewModel::nextWeek,
+                        onCurrentWeek = scheduleViewModel::currentWeek,
+                        onSaveTerm = scheduleViewModel::saveTerm,
+                        onDeleteTerm = scheduleViewModel::deleteTerm,
+                        onSaveTask = scheduleViewModel::saveTask,
+                        onDeleteTask = scheduleViewModel::deleteTask,
+                        onSaveCourse = scheduleViewModel::saveCourse,
+                        onDeleteCourse = scheduleViewModel::deleteCourse,
+                        onConfirmOverlap = scheduleViewModel::confirmOverlapSave,
+                        onCancelOverlap = scheduleViewModel::cancelOverlapSave,
+                        reminderPermissions = reminderPermissions,
+                        onOpenReminderSettings = { navController.navigate(Screen.Settings.route) },
+                        statisticsState = statisticsState,
+                        statisticsDraft = timeRecordDraft,
+                        onSelectPeriod = statisticsViewModel::selectPeriod,
+                        onSelectRanking = statisticsViewModel::selectRanking,
+                        onPreviousPeriod = statisticsViewModel::previousPeriod,
+                        onNextPeriod = statisticsViewModel::nextPeriod,
+                        onCurrentPeriod = statisticsViewModel::currentPeriod,
+                        onRetryStatistics = statisticsViewModel::refresh,
+                        onAddRecord = statisticsViewModel::prepareNewRecord,
+                        onEditRecord = statisticsViewModel::prepareEditRecord,
+                        onDeleteRecord = statisticsViewModel::deleteRecord,
+                        onUpdateRecordTitle = statisticsViewModel::updateTitle,
+                        onUpdateRecordCategory = statisticsViewModel::updateCategory,
+                        onUpdateRecordStartDate = statisticsViewModel::updateStartDate,
+                        onUpdateRecordStartTime = statisticsViewModel::updateStartTime,
+                        onUpdateRecordEndDate = statisticsViewModel::updateEndDate,
+                        onUpdateRecordEndTime = statisticsViewModel::updateEndTime,
+                        onSaveRecordDraft = statisticsViewModel::saveDraft,
+                        onDismissRecordEditor = statisticsViewModel::dismissEditor
+                    )
+                }
+                composable(Screen.Idea.route) {
+                    IdeaScreen(
+                        state = ideaState,
+                        quickDraft = quickDraft,
+                        onQuickContentChange = ideaViewModel::updateQuickContent,
+                        onQuickTagsChange = ideaViewModel::updateQuickTags,
+                        onQuickSave = ideaViewModel::saveQuickIdea,
+                        onAdd = { navController.navigate(IdeaRoutes.edit()) },
+                        onEdit = { navController.navigate(IdeaRoutes.edit(it)) },
+                        onOpenTrash = { navController.navigate(IdeaRoutes.TRASH) }
+                    )
+                }
+                composable(
+                    route = IdeaRoutes.EDIT_PATTERN,
+                    arguments = listOf(navArgument("ideaId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val ideaId = backStackEntry.arguments?.getString("ideaId")
+                        ?.takeUnless { it == IdeaRoutes.NEW_ID }
+                    IdeaEditScreen(
+                        draft = editorDraft,
+                        state = ideaState,
+                        onPrepare = { ideaViewModel.prepareEditor(ideaId) },
+                        onContentChange = ideaViewModel::updateEditorContent,
+                        onTagsChange = ideaViewModel::updateEditorTags,
+                        onSave = ideaViewModel::saveEditor,
+                        onMoveToTrash = ideaViewModel::moveToTrash,
+                        onBack = navController::popBackStack
+                    )
+                }
+                composable(IdeaRoutes.TRASH) {
+                    IdeaTrashScreen(
+                        state = ideaState,
+                        onBack = navController::popBackStack,
+                        onRestore = ideaViewModel::restore,
+                        onPermanentlyDelete = ideaViewModel::permanentlyDelete
+                    )
+                }
+                composable(Screen.Toolbox.route) {
+                    PomodoroScreen(
+                        state = pomodoroState,
+                        initialSection = "timer",
+                        notificationGranted = reminderPermissions.notificationGranted,
+                        onSavePoolItem = pomodoroViewModel::savePoolItem,
+                        onSetPoolItemEnabled = pomodoroViewModel::setPoolItemEnabled,
+                        onDeletePoolItem = pomodoroViewModel::deletePoolItem,
+                        onDraw = pomodoroViewModel::draw,
+                        onStart = pomodoroViewModel::startPomodoro,
+                        onPause = pomodoroViewModel::pause,
+                        onResume = pomodoroViewModel::resume,
+                        onReset = pomodoroViewModel::reset,
+                        onFinishEarly = pomodoroViewModel::finishEarly,
+                        onStartRest = pomodoroViewModel::startRest,
+                        onClearSession = pomodoroViewModel::clearSession,
+                        onRequestNotificationPermission = {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            }
                         }
-                    }
-                )
-            }
-            composable(Screen.Statistics.route) {
-                StatisticsScreen(
-                    state = statisticsState,
-                    draft = timeRecordDraft,
-                    onSelectPeriod = statisticsViewModel::selectPeriod,
-                    onSelectRanking = statisticsViewModel::selectRanking,
-                    onPreviousPeriod = statisticsViewModel::previousPeriod,
-                    onNextPeriod = statisticsViewModel::nextPeriod,
-                    onCurrentPeriod = statisticsViewModel::currentPeriod,
-                    onRetry = statisticsViewModel::refresh,
-                    onAddRecord = statisticsViewModel::prepareNewRecord,
-                    onEditRecord = statisticsViewModel::prepareEditRecord,
-                    onDeleteRecord = statisticsViewModel::deleteRecord,
-                    onUpdateTitle = statisticsViewModel::updateTitle,
-                    onUpdateCategory = statisticsViewModel::updateCategory,
-                    onUpdateStartDate = statisticsViewModel::updateStartDate,
-                    onUpdateStartTime = statisticsViewModel::updateStartTime,
-                    onUpdateEndDate = statisticsViewModel::updateEndDate,
-                    onUpdateEndTime = statisticsViewModel::updateEndTime,
-                    onSaveDraft = statisticsViewModel::saveDraft,
-                    onDismissEditor = statisticsViewModel::dismissEditor
-                )
-            }
-            composable(Screen.Settings.route) {
-                SettingsScreen(
-                    reminderPermissions = reminderPermissions,
-                    backupState = backupState,
-                    onBack = navController::popBackStack,
-                    onRequestNotificationPermission = {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    )
+                }
+                composable(
+                    route = PomodoroRoutes.PATTERN,
+                    arguments = listOf(navArgument("section") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    PomodoroScreen(
+                        state = pomodoroState,
+                        initialSection = backStackEntry.arguments?.getString("section") ?: "timer",
+                        notificationGranted = reminderPermissions.notificationGranted,
+                        onSavePoolItem = pomodoroViewModel::savePoolItem,
+                        onSetPoolItemEnabled = pomodoroViewModel::setPoolItemEnabled,
+                        onDeletePoolItem = pomodoroViewModel::deletePoolItem,
+                        onDraw = pomodoroViewModel::draw,
+                        onStart = pomodoroViewModel::startPomodoro,
+                        onPause = pomodoroViewModel::pause,
+                        onResume = pomodoroViewModel::resume,
+                        onReset = pomodoroViewModel::reset,
+                        onFinishEarly = pomodoroViewModel::finishEarly,
+                        onStartRest = pomodoroViewModel::startRest,
+                        onClearSession = pomodoroViewModel::clearSession,
+                        onRequestNotificationPermission = {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            }
                         }
-                    },
-                    onOpenExactAlarmSettings = {
-                        exactAlarmSettingsLauncher.launch(
-                            Intent(
-                                Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
-                                Uri.parse("package:${application.packageName}")
+                    )
+                }
+                composable(Screen.Settings.route) {
+                    SettingsScreen(
+                        reminderPermissions = reminderPermissions,
+                        backupState = backupState,
+                        onRequestNotificationPermission = {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                        },
+                        onOpenExactAlarmSettings = {
+                            exactAlarmSettingsLauncher.launch(
+                                Intent(
+                                    Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                                    Uri.parse("package:${application.packageName}")
+                                )
                             )
-                        )
-                    },
-                    onRequestExport = backupViewModel::requestExport,
-                    onDismissExportWarning = backupViewModel::dismissExportWarning,
-                    onConfirmExportWarning = {
-                        backupViewModel.confirmExportWarning { exportLauncher.launch(exportFileName) }
-                    },
-                    onChooseImportFile = { importLauncher.launch(arrayOf("application/json", "text/plain")) },
-                    onDismissImportConfirmation = backupViewModel::dismissImportConfirmation,
-                    onConfirmImport = {
-                        backupViewModel.confirmImport {
-                            // DAO 列表不是 Flow，导入成功后主动刷新全部受影响页面快照。
-                            ideaViewModel.refresh()
-                            scheduleViewModel.refresh()
-                            pomodoroViewModel.refreshPool()
-                            statisticsViewModel.refresh()
+                        },
+                        onRequestExport = backupViewModel::requestExport,
+                        onDismissExportWarning = backupViewModel::dismissExportWarning,
+                        onConfirmExportWarning = {
+                            backupViewModel.confirmExportWarning { exportLauncher.launch(exportFileName) }
+                        },
+                        onChooseImportFile = { importLauncher.launch(arrayOf("application/json", "text/plain")) },
+                        onDismissImportConfirmation = backupViewModel::dismissImportConfirmation,
+                        onConfirmImport = {
+                            backupViewModel.confirmImport {
+                                // DAO 列表不是 Flow，导入成功后主动刷新全部受影响页面快照。
+                                ideaViewModel.refresh()
+                                scheduleViewModel.refresh()
+                                pomodoroViewModel.refreshPool()
+                                statisticsViewModel.refresh()
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
-        }
-        pomodoroState.session?.let { session ->
-            if (currentRoute != PomodoroRoutes.PATTERN) {
-                PomodoroCompactBar(
-                    session = session,
-                    remainingSeconds = pomodoroState.remainingSeconds,
-                    onClick = { navController.navigate(PomodoroRoutes.timer()) }
-                )
+            pomodoroState.session?.let { session ->
+                if (currentRoute != Screen.Toolbox.route && currentRoute != PomodoroRoutes.PATTERN) {
+                    PomodoroCompactBar(
+                        session = session,
+                        remainingSeconds = pomodoroState.remainingSeconds,
+                        onClick = { navController.navigate(PomodoroRoutes.timer()) }
+                    )
+                }
             }
-        }
         }
     }
 }
