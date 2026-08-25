@@ -49,7 +49,9 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
     val ideaState by ideaViewModel.uiState.collectAsState()
     val quickDraft by ideaViewModel.quickDraft.collectAsState()
     val editorDraft by ideaViewModel.editorDraft.collectAsState()
-    val scheduleFactory = remember(application) { ScheduleViewModel.Factory(application.scheduleRepository) }
+    val scheduleFactory = remember(application) {
+        ScheduleViewModel.Factory(application.scheduleRepository, application.reminderCoordinator)
+    }
     val scheduleViewModel: ScheduleViewModel = viewModel(factory = scheduleFactory)
     val scheduleState by scheduleViewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
