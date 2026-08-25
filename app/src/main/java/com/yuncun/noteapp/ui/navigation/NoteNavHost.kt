@@ -192,7 +192,8 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
                     onSave = ideaViewModel::saveQuickIdea,
                     onOpenIdeas = { navController.navigate(Screen.Idea.route) },
                     onOpenEventPool = { navController.navigate(PomodoroRoutes.pool()) },
-                    onOpenPomodoro = { navController.navigate(PomodoroRoutes.timer()) }
+                    onOpenPomodoro = { navController.navigate(PomodoroRoutes.timer()) },
+                    onOpenSettings = { navController.navigate(Screen.Settings.route) }
                 )
             }
             composable(Screen.Idea.route) {
@@ -302,6 +303,7 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
                 SettingsScreen(
                     reminderPermissions = reminderPermissions,
                     backupState = backupState,
+                    onBack = navController::popBackStack,
                     onRequestNotificationPermission = {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)

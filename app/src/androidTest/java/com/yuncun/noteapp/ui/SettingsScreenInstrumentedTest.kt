@@ -1,9 +1,15 @@
 package com.yuncun.noteapp.ui
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.Density
 import com.yuncun.noteapp.reminder.ReminderPermissionState
 import com.yuncun.noteapp.ui.screens.SettingsScreen
 import com.yuncun.noteapp.ui.backup.BackupUiState
@@ -74,5 +80,25 @@ class SettingsScreenInstrumentedTest {
         composeRule.onNodeWithText("替换全部现有数据？").assertIsDisplayed()
         composeRule.onNodeWithText("确认替换").performClick()
         assertTrue(importConfirmed)
+    }
+
+    @Test
+    fun largeFont_canScrollToBackupActionsAndReturn() {
+        var backRequested = false
+        composeRule.setContent {
+            val currentDensity = LocalDensity.current
+            CompositionLocalProvider(
+                LocalDensity provides Density(currentDensity.density, fontScale = 2f)
+            ) {
+                NoteAppTheme(darkTheme = true) {
+                    SettingsScreen(onBack = { backRequested = true })
+                }
+            }
+        }
+
+        // 大字体与深色主题组合下，核心备份操作仍可通过滚动访问。
+        composeRule.onNodeWithText("导入 JSON 备份").performScrollTo().assertIsDisplayed().assertHasClickAction()
+        composeRule.onNodeWithContentDescription("返回").performClick()
+        assertTrue(backRequested)
     }
 }

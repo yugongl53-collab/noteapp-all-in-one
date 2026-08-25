@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
@@ -24,8 +25,10 @@ import androidx.compose.ui.unit.dp
 import com.yuncun.noteapp.ui.idea.IdeaDraftState
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
-private val todayFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("M 月 d 日 EEEE")
+private val todayFormatter: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("M 月 d 日 EEEE", Locale.SIMPLIFIED_CHINESE)
 
 /** 今日页让快速输入始终位于首屏，并提供 M5 两条行动流程的直接入口。 */
 @Composable
@@ -37,6 +40,8 @@ fun TodayScreen(
     onOpenIdeas: () -> Unit,
     onOpenEventPool: () -> Unit = {},
     onOpenPomodoro: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
+    today: LocalDate = LocalDate.now(),
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -48,7 +53,8 @@ fun TodayScreen(
     ) {
         Text("今天", style = MaterialTheme.typography.headlineLarge)
         Text(
-            text = todayFormatter.format(LocalDate.now()),
+            // 中文产品固定使用中文星期，避免跟随英文设备区域后出现中英混排。
+            text = todayFormatter.format(today),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -98,6 +104,19 @@ fun TodayScreen(
                 OutlinedButton(onClick = onOpenEventPool, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Default.Shuffle, contentDescription = null)
                     Text("随机选一件事", Modifier.padding(start = 8.dp))
+                }
+            }
+        }
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("数据与提醒", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    "管理提醒权限，以及导入、导出本地 JSON 备份。",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.Settings, contentDescription = null)
+                    Text("打开设置", Modifier.padding(start = 8.dp))
                 }
             }
         }
