@@ -107,7 +107,7 @@
 技术选型的背景与取舍见[采用原生 Android 技术栈](docs/adr/0001-采用原生Android技术栈.md)。
 ## 开发环境
 
-使用 Android Studio 稳定版及其内置 JDK（或 JDK 21+）和 Android SDK。项目已内置 Gradle Wrapper，直接使用 `./gradlew` 构建与测试，无需安装全局 Gradle。
+使用 Android Studio 稳定版、JDK 17 或 JDK 21 和 Android SDK。当前 Gradle 与 Android Gradle Plugin 组合不支持 JDK 25。项目已内置 Gradle Wrapper，直接使用 `./gradlew` 构建与测试，无需安装全局 Gradle。
 
 模拟器验收至少需要安装一个 Android 12（API 31）或更高版本的系统镜像并创建 AVD；后台计时、通知和省电策略还必须在 Android 12 或更高版本的实体手机上验证。
 
