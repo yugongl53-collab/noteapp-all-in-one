@@ -8,7 +8,7 @@
 
 ## 2. 前置条件
 
-- Android Studio 稳定版或 JDK 21+，并安装项目当前使用的 Android SDK 35、Build Tools、Platform Tools 与 Emulator。
+- Android Studio 稳定版、JDK 17 或 JDK 21，并安装项目当前使用的 Android SDK 35、Build Tools、Platform Tools 与 Emulator；当前构建链不支持 JDK 25。
 - 一个 API 31 AVD，用于最低支持版本回归；更高 API AVD只能补充验证，不能替代 API 31 边界。
 - 一台 Android 12 或更高版本实体手机，用于通知、准点提醒、后台、省电策略、进程终止和设备重启验收。
 - 用户自行创建并保管的 release keystore。密钥、密码、本地 SDK 路径和 APK 均不得加入 Git。

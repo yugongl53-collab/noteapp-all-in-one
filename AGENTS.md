@@ -24,7 +24,8 @@
 
 - Kotlin `2.0.21`、Android Gradle Plugin `8.7.3`、Jetpack Compose 和 Material 3。
 - `applicationId = "com.yuncun.noteapp"`，`minSdk = 31`，`compileSdk = 35`，`targetSdk = 35`。
-- Java/Kotlin 字节码目标为 17；开发可使用 Android Studio 稳定版内置 JDK 或 JDK 21+，CI 使用 Temurin JDK 17。
+- Java/Kotlin 字节码目标为 17；Gradle 使用 JDK 17 或 21，CI 使用 Temurin JDK 17。不要使用当前构建链尚不支持的 JDK 25。
+- 不在 `gradle.properties` 中提交机器专属的 `org.gradle.java.home`；本地 JDK 通过 Android Studio、`JAVA_HOME` 或用户级 Gradle 配置选择。
 - 本地数据使用 Room 和 DataStore；导航、生命周期状态和异步任务使用 Navigation Compose、ViewModel 与 Coroutines；JSON 使用 kotlinx.serialization。
 - 已批准的依赖以 `gradle/libs.versions.toml` 和 `app/build.gradle.kts` 为准。新增依赖仍须按全局规范先说明收益并取得用户同意。
 - 只适配手机竖屏并跟随系统浅色或深色主题，不引入网络账号或云端状态。
