@@ -84,6 +84,42 @@ class ReminderScheduleRulesTest {
     }
 
     @Test
+    fun weeklyRule_whenCurrentInstanceDelivered_returnsFollowingInstance() {
+        val rule = ScheduleRule(
+            id = "weekly",
+            title = "锻炼",
+            category = EventCategory.WORK,
+            type = ScheduleType.WEEKLY,
+            weekdays = setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY),
+            effectiveFrom = LocalDate.parse("2026-08-01"),
+            date = null,
+            startTime = LocalTime.of(10, 0),
+            endTime = LocalTime.of(11, 0),
+            isEnabled = true
+        )
+        val current = ReminderScheduleRules.nextCandidates(
+            schedules = listOf(rule),
+            courses = emptyList(),
+            terms = emptyList(),
+            configurations = listOf(configuration(ScheduleSource.TASK, "weekly", 5)),
+            now = Instant.parse("2026-08-25T00:00:00Z"),
+            zoneId = zoneId
+        ).single()
+
+        val following = ReminderScheduleRules.nextCandidates(
+            schedules = listOf(rule),
+            courses = emptyList(),
+            terms = emptyList(),
+            configurations = listOf(configuration(ScheduleSource.TASK, "weekly", 5)),
+            now = Instant.parse("2026-08-25T01:55:00Z"),
+            zoneId = zoneId,
+            excludedIds = setOf(current.id)
+        ).single()
+
+        assertEquals(Instant.parse("2026-08-27T02:00:00Z"), following.startAt)
+    }
+
+    @Test
     fun courseBeforeItsTeachingWeeks_findsFirstConfiguredWeek() {
         val term = TermPeriod(
             id = "term",

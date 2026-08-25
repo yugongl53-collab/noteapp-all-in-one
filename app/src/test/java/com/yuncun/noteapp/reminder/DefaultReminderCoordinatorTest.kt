@@ -99,6 +99,32 @@ class DefaultReminderCoordinatorTest {
         assertEquals(LocalTime.of(12, 0), alarmGateway.scheduledCandidates.last().startAt.atZone(zoneId).toLocalTime())
     }
 
+    @Test
+    fun triggeredWeeklyReminder_schedulesFollowingInstance() = runTest {
+        var currentNow = Instant.parse("2026-08-25T00:00:00Z")
+        val repository = FakeScheduleRepository(mutableListOf(weeklyTask("weekly")))
+        val alarmGateway = FakeAlarmGateway()
+        val coordinator = DefaultReminderCoordinator(
+            repository = repository,
+            permissionReader = FakePermissionReader(ReminderPermissionState(true, true)),
+            alarmGateway = alarmGateway,
+            notificationGateway = FakeNotificationGateway(),
+            registry = FakeReminderRegistry(),
+            clock = { currentNow },
+            zoneId = zoneId
+        )
+        coordinator.synchronize()
+        val triggered = alarmGateway.scheduledCandidates.single()
+        currentNow = triggered.remindAt
+
+        coordinator.handleTriggered(triggered)
+
+        assertEquals(
+            Instant.parse("2026-08-27T02:00:00Z"),
+            alarmGateway.scheduledCandidates.last().startAt
+        )
+    }
+
     private fun coordinator(
         tasks: List<ScheduleTaskEntity>,
         permissions: ReminderPermissionState = ReminderPermissionState(true, true),
@@ -130,6 +156,13 @@ class DefaultReminderCoordinatorTest {
         reminderAdvanceMinutes = 5,
         createdAt = now,
         updatedAt = now
+    )
+
+    private fun weeklyTask(id: String) = task(id, LocalTime.of(10, 0)).copy(
+        type = ScheduleType.WEEKLY,
+        weekdays = setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY),
+        effectiveFrom = LocalDate.parse("2026-08-01"),
+        date = null
     )
 
     private class FakePermissionReader(var state: ReminderPermissionState) : ReminderPermissionReader {
