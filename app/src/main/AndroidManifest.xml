@@ -30,6 +30,9 @@
             android:name=".reminder.ReminderAlarmReceiver"
             android:exported="false" />
         <receiver
+            android:name=".pomodoro.PomodoroAlarmReceiver"
+            android:exported="false" />
+        <receiver
             android:name=".reminder.ReminderRescheduleReceiver"
             android:enabled="true"
             android:exported="false">

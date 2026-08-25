@@ -5,7 +5,9 @@ import com.yuncun.noteapp.data.local.NoteDatabase
 import com.yuncun.noteapp.data.preferences.AppPreferencesRepository
 import com.yuncun.noteapp.data.preferences.appPreferencesDataStore
 import com.yuncun.noteapp.data.repository.IdeaRepository
+import com.yuncun.noteapp.data.repository.EventPoolRepository
 import com.yuncun.noteapp.data.repository.RoomIdeaRepository
+import com.yuncun.noteapp.data.repository.RoomEventPoolRepository
 import com.yuncun.noteapp.data.repository.RoomScheduleRepository
 import com.yuncun.noteapp.data.repository.ScheduleRepository
 import com.yuncun.noteapp.reminder.AndroidReminderAlarmGateway
@@ -14,6 +16,10 @@ import com.yuncun.noteapp.reminder.AndroidReminderPermissionReader
 import com.yuncun.noteapp.reminder.DefaultReminderCoordinator
 import com.yuncun.noteapp.reminder.ReminderCoordinator
 import com.yuncun.noteapp.reminder.SharedPreferencesReminderRegistry
+import com.yuncun.noteapp.pomodoro.AndroidPomodoroAlarmGateway
+import com.yuncun.noteapp.pomodoro.AndroidPomodoroNotificationGateway
+import com.yuncun.noteapp.pomodoro.DefaultPomodoroCoordinator
+import com.yuncun.noteapp.pomodoro.PomodoroCoordinator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -37,7 +43,13 @@ class NoteApp : Application() {
     lateinit var scheduleRepository: ScheduleRepository
         private set
 
+    lateinit var eventPoolRepository: EventPoolRepository
+        private set
+
     lateinit var reminderCoordinator: ReminderCoordinator
+        private set
+
+    lateinit var pomodoroCoordinator: PomodoroCoordinator
         private set
 
     override fun onCreate() {
@@ -46,6 +58,7 @@ class NoteApp : Application() {
         database = NoteDatabase.getInstance(this)
         preferencesRepository = AppPreferencesRepository(appPreferencesDataStore)
         ideaRepository = RoomIdeaRepository(database.ideaDao())
+        eventPoolRepository = RoomEventPoolRepository(database.eventPoolItemDao())
         scheduleRepository = RoomScheduleRepository(
             database.academicTermDao(),
             database.scheduleTaskDao(),
@@ -58,7 +71,12 @@ class NoteApp : Application() {
             notificationGateway = AndroidReminderNotificationGateway(this),
             registry = SharedPreferencesReminderRegistry(this)
         )
-        // 每次进程启动都以数据库与当前系统权限为事实重建下一实例。
+        pomodoroCoordinator = DefaultPomodoroCoordinator(
+            store = preferencesRepository,
+            alarmGateway = AndroidPomodoroAlarmGateway(this),
+            notificationGateway = AndroidPomodoroNotificationGateway(this)
+        )
+        // 每次进程启动都以数据库、活动会话与当前系统权限为事实重建提醒。
         synchronizeReminders()
     }
 
@@ -66,6 +84,7 @@ class NoteApp : Application() {
         applicationScope.launch {
             try {
                 reminderCoordinator.synchronize()
+                pomodoroCoordinator.synchronize()
             } finally {
                 onComplete()
             }

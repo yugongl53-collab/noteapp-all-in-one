@@ -9,6 +9,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
@@ -25,7 +27,7 @@ import java.time.format.DateTimeFormatter
 
 private val todayFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("M 月 d 日 EEEE")
 
-/** 今日页让快速输入始终位于首屏，其他里程碑入口继续保持真实占位说明。 */
+/** 今日页让快速输入始终位于首屏，并提供 M5 两条行动流程的直接入口。 */
 @Composable
 fun TodayScreen(
     draft: IdeaDraftState,
@@ -33,6 +35,8 @@ fun TodayScreen(
     onTagsChange: (String) -> Unit,
     onSave: () -> Unit,
     onOpenIdeas: () -> Unit,
+    onOpenEventPool: () -> Unit = {},
+    onOpenPomodoro: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -84,10 +88,18 @@ fun TodayScreen(
                 }
             }
         }
-        Text(
-            text = "今日计划、番茄钟和随机行动将在后续里程碑接入。",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("开始行动", style = MaterialTheme.typography.titleLarge)
+                Button(onClick = onOpenPomodoro, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.Timer, contentDescription = null)
+                    Text("开始专注", Modifier.padding(start = 8.dp))
+                }
+                OutlinedButton(onClick = onOpenEventPool, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.Shuffle, contentDescription = null)
+                    Text("随机选一件事", Modifier.padding(start = 8.dp))
+                }
+            }
+        }
     }
 }

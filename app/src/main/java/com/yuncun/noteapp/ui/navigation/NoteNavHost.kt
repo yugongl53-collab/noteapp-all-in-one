@@ -7,6 +7,8 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -32,11 +34,13 @@ import androidx.navigation.navArgument
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yuncun.noteapp.NoteApp
 import com.yuncun.noteapp.ui.idea.IdeaViewModel
+import com.yuncun.noteapp.ui.pomodoro.PomodoroViewModel
 import com.yuncun.noteapp.ui.schedule.ScheduleViewModel
 import com.yuncun.noteapp.ui.screens.IdeaEditScreen
 import com.yuncun.noteapp.ui.screens.IdeaScreen
 import com.yuncun.noteapp.ui.screens.IdeaTrashScreen
 import com.yuncun.noteapp.ui.screens.PomodoroScreen
+import com.yuncun.noteapp.ui.screens.PomodoroCompactBar
 import com.yuncun.noteapp.ui.screens.ScheduleScreen
 import com.yuncun.noteapp.ui.screens.SettingsScreen
 import com.yuncun.noteapp.ui.screens.StatisticsScreen
@@ -61,6 +65,11 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
     }
     val scheduleViewModel: ScheduleViewModel = viewModel(factory = scheduleFactory)
     val scheduleState by scheduleViewModel.uiState.collectAsState()
+    val pomodoroFactory = remember(application) {
+        PomodoroViewModel.Factory(application.eventPoolRepository, application.pomodoroCoordinator)
+    }
+    val pomodoroViewModel: PomodoroViewModel = viewModel(factory = pomodoroFactory)
+    val pomodoroState by pomodoroViewModel.uiState.collectAsState()
     val reminderPermissions by application.reminderCoordinator.permissionState.collectAsState()
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -84,6 +93,12 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
         scheduleState.feedback?.let { message ->
             snackbarHostState.showSnackbar(message)
             scheduleViewModel.consumeFeedback()
+        }
+    }
+    LaunchedEffect(pomodoroState.feedback) {
+        pomodoroState.feedback?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            pomodoroViewModel.consumeFeedback()
         }
     }
 
@@ -117,10 +132,11 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
             }
         }
     ) { innerPadding ->
+        Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
         NavHost(
             navController = navController,
             startDestination = Screen.Today.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.weight(1f)
         ) {
             composable(Screen.Today.route) {
                 TodayScreen(
@@ -128,7 +144,9 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
                     onContentChange = ideaViewModel::updateQuickContent,
                     onTagsChange = ideaViewModel::updateQuickTags,
                     onSave = ideaViewModel::saveQuickIdea,
-                    onOpenIdeas = { navController.navigate(Screen.Idea.route) }
+                    onOpenIdeas = { navController.navigate(Screen.Idea.route) },
+                    onOpenEventPool = { navController.navigate(PomodoroRoutes.pool()) },
+                    onOpenPomodoro = { navController.navigate(PomodoroRoutes.timer()) }
                 )
             }
             composable(Screen.Idea.route) {
@@ -184,8 +202,32 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
                     onOpenReminderSettings = { navController.navigate(Screen.Settings.route) }
                 )
             }
-            composable(Screen.Pomodoro.route) {
-                PomodoroScreen()
+            composable(
+                route = PomodoroRoutes.PATTERN,
+                arguments = listOf(navArgument("section") { type = NavType.StringType })
+            ) { backStackEntry ->
+                PomodoroScreen(
+                    state = pomodoroState,
+                    initialSection = backStackEntry.arguments?.getString("section") ?: "timer",
+                    notificationGranted = reminderPermissions.notificationGranted,
+                    onBack = navController::popBackStack,
+                    onSavePoolItem = pomodoroViewModel::savePoolItem,
+                    onSetPoolItemEnabled = pomodoroViewModel::setPoolItemEnabled,
+                    onDeletePoolItem = pomodoroViewModel::deletePoolItem,
+                    onDraw = pomodoroViewModel::draw,
+                    onStart = pomodoroViewModel::startPomodoro,
+                    onPause = pomodoroViewModel::pause,
+                    onResume = pomodoroViewModel::resume,
+                    onReset = pomodoroViewModel::reset,
+                    onFinishEarly = pomodoroViewModel::finishEarly,
+                    onStartRest = pomodoroViewModel::startRest,
+                    onClearSession = pomodoroViewModel::clearSession,
+                    onRequestNotificationPermission = {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    }
+                )
             }
             composable(Screen.Statistics.route) {
                 StatisticsScreen()
@@ -208,6 +250,16 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
                     }
                 )
             }
+        }
+        pomodoroState.session?.let { session ->
+            if (currentRoute != PomodoroRoutes.PATTERN) {
+                PomodoroCompactBar(
+                    session = session,
+                    remainingSeconds = pomodoroState.remainingSeconds,
+                    onClick = { navController.navigate(PomodoroRoutes.timer()) }
+                )
+            }
+        }
         }
     }
 }

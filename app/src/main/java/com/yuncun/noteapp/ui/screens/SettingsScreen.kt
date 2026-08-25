@@ -42,13 +42,13 @@ fun SettingsScreen(
         ) {
             Text("提醒权限", style = MaterialTheme.typography.headlineSmall)
             Text(
-                "课程和普通事件需要通知权限与“闹钟和提醒”权限；权限不足不会阻止保存，但不会调度系统提醒。",
+                "番茄钟阶段提醒需要通知权限；课程和普通事件还需要“闹钟和提醒”权限。权限不足不会阻止保存或计时。",
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             PermissionCard(
                 title = "通知权限",
                 granted = reminderPermissions.notificationGranted,
-                explanation = "允许应用在日程提醒时显示通知。",
+                explanation = "允许应用显示番茄钟阶段结束、课程和普通事件提醒。",
                 actionLabel = "授予通知权限",
                 onAction = onRequestNotificationPermission
             )

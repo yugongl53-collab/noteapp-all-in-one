@@ -33,3 +33,10 @@ object IdeaRoutes {
 
     fun edit(ideaId: String = NEW_ID): String = "ideas/edit/$ideaId"
 }
+
+/** M5 二级页按入口选择初始分区，页内切换不再增加导航栈。 */
+object PomodoroRoutes {
+    const val PATTERN = "pomodoro/{section}"
+    fun timer(): String = "pomodoro/timer"
+    fun pool(): String = "pomodoro/pool"
+}
