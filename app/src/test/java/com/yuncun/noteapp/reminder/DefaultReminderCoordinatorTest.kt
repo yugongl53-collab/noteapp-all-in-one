@@ -125,6 +125,28 @@ class DefaultReminderCoordinatorTest {
         )
     }
 
+    @Test
+    fun synchronize_afterTimeZoneChange_usesCurrentSystemZone() = runTest {
+        var currentZone = ZoneId.of("Asia/Shanghai")
+        val alarmGateway = FakeAlarmGateway()
+        val coordinator = DefaultReminderCoordinator(
+            repository = FakeScheduleRepository(mutableListOf(task("event", LocalTime.of(11, 0)))),
+            permissionReader = FakePermissionReader(ReminderPermissionState(true, true)),
+            alarmGateway = alarmGateway,
+            notificationGateway = FakeNotificationGateway(),
+            registry = FakeReminderRegistry(),
+            clock = { now },
+            zoneIdProvider = { currentZone }
+        )
+        coordinator.synchronize()
+        val shanghaiStart = alarmGateway.scheduledCandidates.last().startAt
+        currentZone = ZoneId.of("Asia/Tokyo")
+
+        coordinator.synchronize()
+
+        assertEquals(shanghaiStart.minusSeconds(3600), alarmGateway.scheduledCandidates.last().startAt)
+    }
+
     private fun coordinator(
         tasks: List<ScheduleTaskEntity>,
         permissions: ReminderPermissionState = ReminderPermissionState(true, true),
