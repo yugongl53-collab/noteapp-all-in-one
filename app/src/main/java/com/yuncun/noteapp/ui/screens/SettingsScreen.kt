@@ -9,25 +9,35 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.yuncun.noteapp.reminder.ReminderPermissionState
+import com.yuncun.noteapp.ui.backup.BackupUiState
 
-/** 设置页读取 Android 当前权限事实；数据备份仍保留为 M7 的明确占位。 */
+/** 设置页读取 Android 当前权限事实，并把备份风险与整体替换放在明确确认之后。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
     reminderPermissions: ReminderPermissionState = ReminderPermissionState(),
+    backupState: BackupUiState = BackupUiState(),
     onRequestNotificationPermission: () -> Unit = {},
-    onOpenExactAlarmSettings: () -> Unit = {}
+    onOpenExactAlarmSettings: () -> Unit = {},
+    onRequestExport: () -> Unit = {},
+    onDismissExportWarning: () -> Unit = {},
+    onConfirmExportWarning: () -> Unit = {},
+    onChooseImportFile: () -> Unit = {},
+    onDismissImportConfirmation: () -> Unit = {},
+    onConfirmImport: () -> Unit = {}
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -60,8 +70,48 @@ fun SettingsScreen(
                 onAction = onOpenExactAlarmSettings
             )
             Text("数据备份", style = MaterialTheme.typography.headlineSmall)
-            Text("JSON 导入与导出将在 M7 接入。", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "手动导入、导出 UTF-8 明文 JSON。备份包含全部业务数据、回收站灵感和番茄钟时长设置，不包含活动计时或系统权限。",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(onClick = onRequestExport, enabled = !backupState.isBusy, modifier = Modifier.fillMaxWidth()) {
+                Text("导出 JSON 备份")
+            }
+            OutlinedButton(onClick = onChooseImportFile, enabled = !backupState.isBusy, modifier = Modifier.fillMaxWidth()) {
+                Text("导入 JSON 备份")
+            }
+            if (backupState.isBusy) Text("正在处理，请稍候……")
         }
+    }
+
+    if (backupState.showExportWarning) {
+        AlertDialog(
+            onDismissRequest = onDismissExportWarning,
+            title = { Text("导出明文个人数据") },
+            text = { Text("JSON 文件可被直接读取，包含灵感、日程和时间记录等个人数据。请保存到可信位置并妥善保管。") },
+            confirmButton = { TextButton(onClick = onConfirmExportWarning) { Text("选择保存位置") } },
+            dismissButton = { TextButton(onClick = onDismissExportWarning) { Text("取消") } }
+        )
+    }
+    backupState.pendingImport?.let { summary ->
+        AlertDialog(
+            onDismissRequest = onDismissImportConfirmation,
+            title = { Text("替换全部现有数据？") },
+            text = {
+                Text(
+                    "文件：${summary.fileName}\n" +
+                        "灵感 ${summary.ideaCount}，普通事件 ${summary.scheduleCount}，学期 ${summary.termCount}，" +
+                        "课程 ${summary.courseCount}，事件池 ${summary.poolItemCount}，时间记录 ${summary.timeRecordCount}。\n" +
+                        "确认后将整体替换当前业务数据和设置，此操作无法撤销。"
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = onConfirmImport, enabled = !backupState.isBusy) { Text("确认替换") }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissImportConfirmation, enabled = !backupState.isBusy) { Text("取消") }
+            }
+        )
     }
 }
 

@@ -6,6 +6,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.yuncun.noteapp.reminder.ReminderPermissionState
 import com.yuncun.noteapp.ui.screens.SettingsScreen
+import com.yuncun.noteapp.ui.backup.BackupUiState
+import com.yuncun.noteapp.data.backup.BackupSummary
 import com.yuncun.noteapp.ui.theme.NoteAppTheme
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -36,5 +38,41 @@ class SettingsScreenInstrumentedTest {
         composeRule.onNodeWithText("打开系统设置").performClick()
         assertTrue(notificationRequested)
         assertTrue(alarmSettingsOpened)
+    }
+
+    @Test
+    fun exportAction_showsPlaintextWarningBeforeChoosingLocation() {
+        var exportRequested = false
+        composeRule.setContent {
+            NoteAppTheme {
+                SettingsScreen(
+                    backupState = BackupUiState(showExportWarning = true),
+                    onConfirmExportWarning = { exportRequested = true }
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("导出明文个人数据").assertIsDisplayed()
+        composeRule.onNodeWithText("选择保存位置").performClick()
+        assertTrue(exportRequested)
+    }
+
+    @Test
+    fun validatedImport_showsReplacementSummaryBeforeCommit() {
+        var importConfirmed = false
+        composeRule.setContent {
+            NoteAppTheme {
+                SettingsScreen(
+                    backupState = BackupUiState(
+                        pendingImport = BackupSummary("backup.json", 2, 1, 1, 3, 4, 5)
+                    ),
+                    onConfirmImport = { importConfirmed = true }
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("替换全部现有数据？").assertIsDisplayed()
+        composeRule.onNodeWithText("确认替换").performClick()
+        assertTrue(importConfirmed)
     }
 }

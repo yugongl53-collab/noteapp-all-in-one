@@ -64,6 +64,7 @@ interface ReminderRegistry {
 interface ReminderCoordinator {
     val permissionState: StateFlow<ReminderPermissionState>
     fun refreshPermissionState()
+    suspend fun cancelScheduled()
     suspend fun synchronize(): ReminderSyncResult
     suspend fun handleTriggered(candidate: ReminderCandidate)
 }
@@ -84,6 +85,13 @@ class DefaultReminderCoordinator(
 
     override fun refreshPermissionState() {
         _permissionState.value = permissionReader.read()
+    }
+
+    override suspend fun cancelScheduled() = mutex.withLock {
+        val current = registry.read()
+        // 导入前只撤销系统闹钟；已送达集合保留到同步时按当前时间清理。
+        current.scheduledIds.forEach(alarmGateway::cancel)
+        registry.replace(current.copy(scheduledIds = emptySet()))
     }
 
     override suspend fun synchronize(): ReminderSyncResult = mutex.withLock {
@@ -205,6 +213,7 @@ object NoOpReminderCoordinator : ReminderCoordinator {
     private val state = MutableStateFlow(ReminderPermissionState())
     override val permissionState: StateFlow<ReminderPermissionState> = state.asStateFlow()
     override fun refreshPermissionState() = Unit
+    override suspend fun cancelScheduled() = Unit
     override suspend fun synchronize() = ReminderSyncResult(state.value)
     override suspend fun handleTriggered(candidate: ReminderCandidate) = Unit
 }

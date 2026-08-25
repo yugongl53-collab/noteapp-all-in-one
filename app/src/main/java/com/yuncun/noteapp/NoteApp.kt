@@ -2,6 +2,9 @@ package com.yuncun.noteapp
 
 import android.app.Application
 import com.yuncun.noteapp.data.local.NoteDatabase
+import com.yuncun.noteapp.data.backup.BackupOperations
+import com.yuncun.noteapp.data.backup.BackupService
+import com.yuncun.noteapp.data.backup.RoomBackupDataGateway
 import com.yuncun.noteapp.data.preferences.AppPreferencesRepository
 import com.yuncun.noteapp.data.preferences.appPreferencesDataStore
 import com.yuncun.noteapp.data.repository.IdeaRepository
@@ -57,6 +60,9 @@ class NoteApp : Application() {
     lateinit var pomodoroCoordinator: PomodoroCoordinator
         private set
 
+    lateinit var backupOperations: BackupOperations
+        private set
+
     override fun onCreate() {
         super.onCreate()
         // 初始化进程级本地唯一事实来源，页面后续通过 Application 取得同一实例。
@@ -81,6 +87,11 @@ class NoteApp : Application() {
             store = preferencesRepository,
             alarmGateway = AndroidPomodoroAlarmGateway(this),
             notificationGateway = AndroidPomodoroNotificationGateway(this)
+        )
+        backupOperations = BackupService(
+            dataGateway = RoomBackupDataGateway(database),
+            preferencesStore = preferencesRepository,
+            reminderCoordinator = reminderCoordinator
         )
         // 每次进程启动都以数据库、活动会话与当前系统权限为事实重建提醒。
         synchronizeReminders()
