@@ -93,6 +93,35 @@ enum class ScheduleSource {
     COURSE
 }
 
+/** 日程提醒配置独立于展开实例，关闭提醒时提前分钟数允许为空。 */
+data class ReminderConfiguration(
+    val source: ScheduleSource,
+    val sourceId: String,
+    val enabled: Boolean,
+    val advanceMinutes: Int?
+)
+
+/** 可交给 Android 调度层的下一次提醒，标识同时绑定来源与实例开始时刻。 */
+data class ReminderCandidate(
+    val source: ScheduleSource,
+    val sourceId: String,
+    val title: String,
+    val location: String?,
+    val startAt: Instant,
+    val remindAt: Instant
+) {
+    val id: String = "${source.name}:${startAt.toEpochMilli()}:$sourceId"
+
+    fun shouldNotifyImmediately(now: Instant): Boolean = remindAt <= now && now < startAt
+
+    companion object {
+        /** 注册表清理只解析由本类型生成的稳定标识，损坏值安全返回空。 */
+        fun startAtFromId(id: String): Instant? = runCatching {
+            Instant.ofEpochMilli(id.split(":", limit = 3)[1].toLong())
+        }.getOrNull()
+    }
+}
+
 /** 展开后的具体绝对时间实例，排序键由开始、结束和稳定标识组成。 */
 data class ScheduleInstance(
     val sourceId: String,

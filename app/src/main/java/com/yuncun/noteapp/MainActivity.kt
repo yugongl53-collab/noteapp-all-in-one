@@ -21,4 +21,13 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        // 从系统设置返回或权限被撤销后，立即刷新事实并重建有效提醒。
+        (application as NoteApp).run {
+            reminderCoordinator.refreshPermissionState()
+            synchronizeReminders()
+        }
+    }
 }

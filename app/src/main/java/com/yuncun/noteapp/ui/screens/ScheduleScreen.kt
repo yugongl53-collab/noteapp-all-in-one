@@ -49,6 +49,7 @@ import com.yuncun.noteapp.data.repository.ScheduleTaskInput
 import com.yuncun.noteapp.domain.model.ScheduleInstance
 import com.yuncun.noteapp.domain.model.ScheduleSource
 import com.yuncun.noteapp.domain.rules.EventStreamItem
+import com.yuncun.noteapp.reminder.ReminderPermissionState
 import com.yuncun.noteapp.ui.schedule.ScheduleUiState
 import com.yuncun.noteapp.ui.schedule.ScheduleViewMode
 import java.time.DayOfWeek
@@ -81,7 +82,9 @@ fun ScheduleScreen(
     onDeleteCourse: (String) -> Unit,
     onConfirmOverlap: () -> Unit,
     onCancelOverlap: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    reminderPermissions: ReminderPermissionState = ReminderPermissionState(true, true),
+    onOpenReminderSettings: () -> Unit = {}
 ) {
     var manager by remember { mutableStateOf<ScheduleManager?>(null) }
     var editingTerm by remember { mutableStateOf<AcademicTermEntity?>(null) }
@@ -137,6 +140,19 @@ fun ScheduleScreen(
                     Icon(Icons.Default.School, null); Text("学期")
                 }
             }
+            val hasConfiguredReminder = state.tasks.any { it.isEnabled && it.reminderEnabled } ||
+                state.courses.any { it.reminderEnabled }
+            if (hasConfiguredReminder && !reminderPermissions.isEffective) {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            "提醒已配置但未生效：缺少${reminderPermissions.missingReason()}",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        OutlinedButton(onClick = onOpenReminderSettings) { Text("提醒设置") }
+                    }
+                }
+            }
             when {
                 state.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
@@ -151,7 +167,7 @@ fun ScheduleScreen(
         ScheduleManager.TASKS -> EntityManagerDialog(
             title = "普通事件配置",
             items = state.tasks.sortedWith(compareBy({ it.type }, { it.title }, { it.id })),
-            itemContent = { TaskSummary(it) },
+            itemContent = { TaskSummary(it, reminderPermissions) },
             onAdd = { createTask = true },
             onEdit = { editingTask = it },
             onDelete = onDeleteTask,
@@ -161,7 +177,7 @@ fun ScheduleScreen(
         ScheduleManager.COURSES -> EntityManagerDialog(
             title = "课程配置",
             items = state.courses.sortedWith(compareBy({ it.termId }, { it.courseName }, { it.id })),
-            itemContent = { CourseSummary(it, state.terms) },
+            itemContent = { CourseSummary(it, state.terms, reminderPermissions) },
             onAdd = { createCourse = true },
             onEdit = { editingCourse = it },
             onDelete = onDeleteCourse,
@@ -188,14 +204,18 @@ fun ScheduleScreen(
         entity = editingTask,
         suggestions = state.taskNameSuggestions,
         onSave = onSaveTask,
-        onDismiss = { createTask = false; editingTask = null }
+        onDismiss = { createTask = false; editingTask = null },
+        reminderPermissions = reminderPermissions,
+        onOpenReminderSettings = onOpenReminderSettings
     )
     if (createCourse || editingCourse != null) CourseEditorDialog(
         entity = editingCourse,
         terms = state.terms,
         suggestions = state.courseNameSuggestions,
         onSave = onSaveCourse,
-        onDismiss = { createCourse = false; editingCourse = null }
+        onDismiss = { createCourse = false; editingCourse = null },
+        reminderPermissions = reminderPermissions,
+        onOpenReminderSettings = onOpenReminderSettings
     )
     if (state.overlapConfirmationRequired) OverlapConfirmationDialog(onConfirmOverlap, onCancelOverlap)
     selectedInstance?.let { instance ->

@@ -20,6 +20,9 @@ import com.yuncun.noteapp.domain.rules.EventStreamItem
 import com.yuncun.noteapp.domain.rules.ScheduleConflictRules
 import com.yuncun.noteapp.domain.rules.ScheduleExpansionRules
 import com.yuncun.noteapp.domain.rules.ScheduleViewRules
+import com.yuncun.noteapp.reminder.NoOpReminderCoordinator
+import com.yuncun.noteapp.reminder.ReminderCoordinator
+import com.yuncun.noteapp.reminder.ReminderSyncResult
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -58,6 +61,7 @@ private sealed interface PendingSave {
 /** M3 状态层统一展开两种视图，并让所有写操作成功后重新读取 Room。 */
 class ScheduleViewModel(
     private val repository: ScheduleRepository,
+    private val reminderCoordinator: ReminderCoordinator = NoOpReminderCoordinator,
     private val clock: () -> Instant = Instant::now,
     private val zoneId: ZoneId = ZoneId.systemDefault(),
     private val today: () -> LocalDate = { LocalDate.now(zoneId) }
@@ -162,23 +166,38 @@ class ScheduleViewModel(
         _uiState.update { derive(it.copy(selectedWeek = AcademicCalendarRules.weekStart(date))) }
     }
 
-    private fun persistTask(id: String?, input: ScheduleTaskInput) = runOperation("普通事件已保存") {
+    private fun persistTask(id: String?, input: ScheduleTaskInput) = runOperation(
+        successMessage = "普通事件已保存",
+        warnIfPermissionMissing = input.isEnabled && input.reminderEnabled
+    ) {
         repository.saveTask(id, input, clock())
     }
 
-    private fun persistCourse(id: String?, input: CourseScheduleInput) = runOperation("课程已保存") {
+    private fun persistCourse(id: String?, input: CourseScheduleInput) = runOperation(
+        successMessage = "课程已保存",
+        warnIfPermissionMissing = input.reminderEnabled
+    ) {
         repository.saveCourse(id, input, clock())
     }
 
-    private fun runOperation(successMessage: String, action: suspend () -> Unit) {
+    private fun runOperation(
+        successMessage: String,
+        warnIfPermissionMissing: Boolean = false,
+        action: suspend () -> Unit
+    ) {
         if (_uiState.value.operationInProgress) return
         _uiState.update { it.copy(operationInProgress = true) }
         viewModelScope.launch {
             runCatching {
                 action()
-                repository.load()
-            }.onSuccess { snapshot ->
-                applySnapshot(snapshot, successMessage, completed = true)
+                val snapshot = repository.load()
+                snapshot to reminderCoordinator.synchronize()
+            }.onSuccess { (snapshot, reminderResult) ->
+                applySnapshot(
+                    snapshot,
+                    reminderFeedback(successMessage, reminderResult, warnIfPermissionMissing),
+                    completed = true
+                )
             }.onFailure { error ->
                 _uiState.update { it.copy(operationInProgress = false) }
                 showFailure("操作失败", error)
@@ -229,11 +248,25 @@ class ScheduleViewModel(
         }
     }
 
-    class Factory(private val repository: ScheduleRepository) : ViewModelProvider.Factory {
+    private fun reminderFeedback(
+        successMessage: String,
+        result: ReminderSyncResult,
+        warnIfPermissionMissing: Boolean
+    ): String = when {
+        result.errorMessage != null -> "$successMessage，但提醒未生效：${result.errorMessage}"
+        warnIfPermissionMissing && !result.permissions.isEffective ->
+            "$successMessage；提醒已配置但未生效：缺少${result.permissions.missingReason()}"
+        else -> successMessage
+    }
+
+    class Factory(
+        private val repository: ScheduleRepository,
+        private val reminderCoordinator: ReminderCoordinator = NoOpReminderCoordinator
+    ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(ScheduleViewModel::class.java)) { "不支持的 ViewModel 类型" }
-            return ScheduleViewModel(repository) as T
+            return ScheduleViewModel(repository, reminderCoordinator) as T
         }
     }
 }

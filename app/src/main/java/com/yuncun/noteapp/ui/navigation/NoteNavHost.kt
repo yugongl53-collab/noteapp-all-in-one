@@ -1,5 +1,12 @@
 package com.yuncun.noteapp.ui.navigation
 
+import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -49,9 +56,22 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
     val ideaState by ideaViewModel.uiState.collectAsState()
     val quickDraft by ideaViewModel.quickDraft.collectAsState()
     val editorDraft by ideaViewModel.editorDraft.collectAsState()
-    val scheduleFactory = remember(application) { ScheduleViewModel.Factory(application.scheduleRepository) }
+    val scheduleFactory = remember(application) {
+        ScheduleViewModel.Factory(application.scheduleRepository, application.reminderCoordinator)
+    }
     val scheduleViewModel: ScheduleViewModel = viewModel(factory = scheduleFactory)
     val scheduleState by scheduleViewModel.uiState.collectAsState()
+    val reminderPermissions by application.reminderCoordinator.permissionState.collectAsState()
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        application.synchronizeReminders()
+    }
+    val exactAlarmSettingsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        application.synchronizeReminders()
+    }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(ideaState.feedback) {
@@ -159,7 +179,9 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
                     onSaveCourse = scheduleViewModel::saveCourse,
                     onDeleteCourse = scheduleViewModel::deleteCourse,
                     onConfirmOverlap = scheduleViewModel::confirmOverlapSave,
-                    onCancelOverlap = scheduleViewModel::cancelOverlapSave
+                    onCancelOverlap = scheduleViewModel::cancelOverlapSave,
+                    reminderPermissions = reminderPermissions,
+                    onOpenReminderSettings = { navController.navigate(Screen.Settings.route) }
                 )
             }
             composable(Screen.Pomodoro.route) {
@@ -169,7 +191,22 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
                 StatisticsScreen()
             }
             composable(Screen.Settings.route) {
-                SettingsScreen()
+                SettingsScreen(
+                    reminderPermissions = reminderPermissions,
+                    onRequestNotificationPermission = {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    },
+                    onOpenExactAlarmSettings = {
+                        exactAlarmSettingsLauncher.launch(
+                            Intent(
+                                Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                                Uri.parse("package:${application.packageName}")
+                            )
+                        )
+                    }
+                )
             }
         }
     }

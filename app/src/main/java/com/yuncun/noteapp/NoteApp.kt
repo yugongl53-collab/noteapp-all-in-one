@@ -8,11 +8,23 @@ import com.yuncun.noteapp.data.repository.IdeaRepository
 import com.yuncun.noteapp.data.repository.RoomIdeaRepository
 import com.yuncun.noteapp.data.repository.RoomScheduleRepository
 import com.yuncun.noteapp.data.repository.ScheduleRepository
+import com.yuncun.noteapp.reminder.AndroidReminderAlarmGateway
+import com.yuncun.noteapp.reminder.AndroidReminderNotificationGateway
+import com.yuncun.noteapp.reminder.AndroidReminderPermissionReader
+import com.yuncun.noteapp.reminder.DefaultReminderCoordinator
+import com.yuncun.noteapp.reminder.ReminderCoordinator
+import com.yuncun.noteapp.reminder.SharedPreferencesReminderRegistry
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * 全局 Application 类，管理应用全局生命周期与依赖初始化
  */
 class NoteApp : Application() {
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     lateinit var database: NoteDatabase
         private set
 
@@ -23,6 +35,9 @@ class NoteApp : Application() {
         private set
 
     lateinit var scheduleRepository: ScheduleRepository
+        private set
+
+    lateinit var reminderCoordinator: ReminderCoordinator
         private set
 
     override fun onCreate() {
@@ -36,5 +51,24 @@ class NoteApp : Application() {
             database.scheduleTaskDao(),
             database.courseScheduleDao()
         )
+        reminderCoordinator = DefaultReminderCoordinator(
+            repository = scheduleRepository,
+            permissionReader = AndroidReminderPermissionReader(this),
+            alarmGateway = AndroidReminderAlarmGateway(this),
+            notificationGateway = AndroidReminderNotificationGateway(this),
+            registry = SharedPreferencesReminderRegistry(this)
+        )
+        // 每次进程启动都以数据库与当前系统权限为事实重建下一实例。
+        synchronizeReminders()
+    }
+
+    fun synchronizeReminders(onComplete: () -> Unit = {}) {
+        applicationScope.launch {
+            try {
+                reminderCoordinator.synchronize()
+            } finally {
+                onComplete()
+            }
+        }
     }
 }

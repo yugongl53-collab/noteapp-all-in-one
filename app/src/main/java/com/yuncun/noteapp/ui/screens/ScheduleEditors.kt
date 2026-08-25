@@ -42,6 +42,7 @@ import com.yuncun.noteapp.domain.model.ScheduleInstance
 import com.yuncun.noteapp.domain.model.ScheduleSource
 import com.yuncun.noteapp.domain.model.ScheduleType
 import com.yuncun.noteapp.domain.model.TermSeason
+import com.yuncun.noteapp.reminder.ReminderPermissionState
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
@@ -118,7 +119,10 @@ fun TermSummary(term: AcademicTermEntity) {
 }
 
 @Composable
-fun TaskSummary(task: ScheduleTaskEntity) {
+fun TaskSummary(
+    task: ScheduleTaskEntity,
+    reminderPermissions: ReminderPermissionState = ReminderPermissionState(true, true)
+) {
     val typeName = if (task.type == ScheduleType.WEEKLY) "每周循环" else "单次事件"
     Text("$typeName · ${task.title}", style = MaterialTheme.typography.titleMedium)
     val applicable = if (task.type == ScheduleType.WEEKLY) {
@@ -126,13 +130,24 @@ fun TaskSummary(task: ScheduleTaskEntity) {
     } else task.date.toString()
     Text("${task.category.displayName} · $applicable · ${task.startTime}—${task.endTime}")
     Text(if (task.isEnabled) "已启用" else "已停用")
+    ReminderStatus(
+        enabled = task.reminderEnabled,
+        advanceMinutes = task.reminderAdvanceMinutes,
+        permissions = reminderPermissions,
+        sourceEnabled = task.isEnabled
+    )
 }
 
 @Composable
-fun CourseSummary(course: CourseScheduleEntity, terms: List<AcademicTermEntity>) {
+fun CourseSummary(
+    course: CourseScheduleEntity,
+    terms: List<AcademicTermEntity>,
+    reminderPermissions: ReminderPermissionState = ReminderPermissionState(true, true)
+) {
     Text(course.courseName, style = MaterialTheme.typography.titleMedium)
     Text("${terms.firstOrNull { it.id == course.termId }?.toPeriod()?.displayName ?: "未知学期"} · ${course.location}")
     Text("第 ${course.startWeek}—${course.endWeek} 周 · ${course.startTime}—${course.endTime}")
+    ReminderStatus(course.reminderEnabled, course.reminderAdvanceMinutes, reminderPermissions)
 }
 
 /** 学期表单使用 ISO 日期文本，错误输入留在原字段供用户修正。 */
@@ -172,7 +187,9 @@ fun TaskEditorDialog(
     entity: ScheduleTaskEntity?,
     suggestions: List<String>,
     onSave: (String?, ScheduleTaskInput) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    reminderPermissions: ReminderPermissionState = ReminderPermissionState(true, true),
+    onOpenReminderSettings: () -> Unit = {}
 ) {
     var title by remember(entity?.id) { mutableStateOf(entity?.title ?: "") }
     var category by remember(entity?.id) { mutableStateOf(entity?.category ?: EventCategory.WORK) }
@@ -205,8 +222,9 @@ fun TaskEditorDialog(
         )
         TimeFields(startTime, { startTime = it }, endTime, { endTime = it })
         BooleanRow("启用事件", enabled) { enabled = it }
-        BooleanRow("启用提醒（M4 接入系统调度）", reminder) { reminder = it }
+        BooleanRow("启用提醒", reminder) { reminder = it }
         if (reminder) OutlinedTextField(advance, { advance = it }, label = { Text("提前分钟数") }, modifier = Modifier.fillMaxWidth())
+        ReminderPermissionWarning(reminder, reminderPermissions, onOpenReminderSettings)
         FormError(error)
         Button(onClick = {
             runCatching {
@@ -233,7 +251,9 @@ fun CourseEditorDialog(
     terms: List<AcademicTermEntity>,
     suggestions: List<String>,
     onSave: (String?, CourseScheduleInput) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    reminderPermissions: ReminderPermissionState = ReminderPermissionState(true, true),
+    onOpenReminderSettings: () -> Unit = {}
 ) {
     var termId by remember(entity?.id, terms) { mutableStateOf(entity?.termId ?: terms.firstOrNull()?.id.orEmpty()) }
     var name by remember(entity?.id) { mutableStateOf(entity?.courseName ?: "") }
@@ -267,8 +287,9 @@ fun CourseEditorDialog(
             OutlinedTextField(startWeek, { startWeek = it }, label = { Text("开始周") }, modifier = Modifier.weight(1f))
             OutlinedTextField(endWeek, { endWeek = it }, label = { Text("结束周") }, modifier = Modifier.weight(1f))
         }
-        BooleanRow("启用提醒（M4 接入系统调度）", reminder) { reminder = it }
+        BooleanRow("启用提醒", reminder) { reminder = it }
         if (reminder) OutlinedTextField(advance, { advance = it }, label = { Text("提前分钟数") }, modifier = Modifier.fillMaxWidth())
+        ReminderPermissionWarning(reminder, reminderPermissions, onOpenReminderSettings)
         FormError(error)
         Button(
             enabled = terms.isNotEmpty(),
@@ -380,4 +401,45 @@ private fun BooleanRow(label: String, checked: Boolean, onCheckedChange: (Boolea
 @Composable
 private fun FormError(error: String?) {
     if (error != null) Text(error, color = MaterialTheme.colorScheme.error)
+}
+
+/** 列表状态区分业务关闭、事件停用、已配置未生效和真实已生效。 */
+@Composable
+private fun ReminderStatus(
+    enabled: Boolean,
+    advanceMinutes: Int?,
+    permissions: ReminderPermissionState,
+    sourceEnabled: Boolean = true
+) {
+    val text = when {
+        !enabled -> "提醒：已关闭"
+        !sourceEnabled -> "提醒已配置但未生效：事件已停用"
+        !permissions.isEffective -> "提醒已配置但未生效：缺少${permissions.missingReason()}"
+        else -> "提醒：提前 ${advanceMinutes ?: 0} 分钟（已生效）"
+    }
+    Text(
+        text,
+        color = if (enabled && sourceEnabled && !permissions.isEffective) {
+            MaterialTheme.colorScheme.error
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        }
+    )
+}
+
+/** 表单仅在用户启用提醒且权限不足时提供显式设置入口，不自动重复弹窗。 */
+@Composable
+private fun ReminderPermissionWarning(
+    reminderEnabled: Boolean,
+    permissions: ReminderPermissionState,
+    onOpenReminderSettings: () -> Unit
+) {
+    if (!reminderEnabled || permissions.isEffective) return
+    Text(
+        "提醒已配置但未生效：缺少${permissions.missingReason()}",
+        color = MaterialTheme.colorScheme.error
+    )
+    OutlinedButton(onClick = onOpenReminderSettings, modifier = Modifier.fillMaxWidth()) {
+        Text("前往提醒设置")
+    }
 }
