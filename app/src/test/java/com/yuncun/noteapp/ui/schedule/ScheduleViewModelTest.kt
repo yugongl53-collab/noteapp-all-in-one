@@ -241,6 +241,7 @@ class ScheduleViewModelTest {
         var synchronizeCount = 0
 
         override fun refreshPermissionState() = Unit
+        override suspend fun cancelScheduled() = Unit
 
         override suspend fun synchronize(): ReminderSyncResult {
             synchronizeCount += 1

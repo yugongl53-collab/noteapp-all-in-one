@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.yuncun.noteapp.data.local.dao.AcademicTermDao
+import com.yuncun.noteapp.data.local.dao.BackupDao
 import com.yuncun.noteapp.data.local.dao.CourseScheduleDao
 import com.yuncun.noteapp.data.local.dao.EventPoolItemDao
 import com.yuncun.noteapp.data.local.dao.IdeaDao
@@ -39,6 +40,7 @@ abstract class NoteDatabase : RoomDatabase() {
     abstract fun courseScheduleDao(): CourseScheduleDao
     abstract fun eventPoolItemDao(): EventPoolItemDao
     abstract fun timeRecordDao(): TimeRecordDao
+    abstract fun backupDao(): BackupDao
 
     companion object {
         private const val DATABASE_NAME = "noteapp.db"
