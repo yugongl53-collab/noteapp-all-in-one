@@ -59,6 +59,7 @@ class ScheduleExpansionRulesTest {
                 id = "course",
                 termId = "term",
                 courseName = "高等数学",
+                location = "一教",
                 weekdays = setOf(DayOfWeek.WEDNESDAY),
                 startTime = LocalTime.of(8, 0),
                 endTime = LocalTime.of(9, 30),
