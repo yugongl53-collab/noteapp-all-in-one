@@ -28,6 +28,9 @@ abstract class IdeaDao {
     @Query("SELECT * FROM ideas WHERE deletedAt IS NULL ORDER BY updatedAt DESC, id ASC")
     abstract suspend fun getActive(): List<IdeaEntity>
 
+    @Query("SELECT * FROM ideas WHERE deletedAt IS NOT NULL ORDER BY deletedAt DESC, id ASC")
+    abstract suspend fun getDeleted(): List<IdeaEntity>
+
     @Query("SELECT * FROM ideas ORDER BY updatedAt DESC, id ASC")
     abstract suspend fun getAll(): List<IdeaEntity>
 
@@ -36,6 +39,15 @@ abstract class IdeaDao {
 
     @Query("DELETE FROM ideas WHERE id = :id")
     abstract suspend fun deleteById(id: String): Int
+
+    @Query("UPDATE ideas SET deletedAt = :deletedAt WHERE id = :id AND deletedAt IS NULL")
+    abstract suspend fun moveToTrash(id: String, deletedAt: java.time.Instant): Int
+
+    @Query("UPDATE ideas SET deletedAt = NULL WHERE id = :id AND deletedAt IS NOT NULL")
+    abstract suspend fun restore(id: String): Int
+
+    @Query("DELETE FROM ideas WHERE deletedAt IS NOT NULL AND deletedAt <= :cutoff")
+    abstract suspend fun deleteExpired(cutoff: java.time.Instant): Int
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     abstract suspend fun insertInternal(entity: IdeaEntity)
