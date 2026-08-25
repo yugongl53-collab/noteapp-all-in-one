@@ -49,6 +49,11 @@ android {
     }
 }
 
+ksp {
+    // 导出 Room Schema 作为后续数据库迁移与结构审查的唯一基线
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
     // AndroidX 核心与生命周期
     implementation(libs.androidx.core.ktx)
