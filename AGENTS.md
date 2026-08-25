@@ -2,7 +2,7 @@
 
 ## 项目结构与模块组织
 
-本仓库已完成 M0 工程骨架和 M1 数据层与公共规则，当前用户界面仍为后续里程碑的导航占位页。`app/src/main/` 存放 Android 源码，`app/src/test/` 存放纯 Kotlin 测试，`app/src/androidTest/` 存放 Room、DataStore 与 Android 集成测试，`app/schemas/` 保存 Room Schema 快照。`README.md` 是项目入口；`docs/product/` 存放产品需求和页面交互；`docs/reference/` 记录数据模型与统计口径；`docs/how-to/` 提供 MVP 实施和验证步骤；`docs/adr/` 保存长期有效的架构决策。新增内容应放入最贴近其用途的现有目录，不要为尚未实现的模块预建空目录。
+本仓库已完成 M0 工程骨架、M1 数据层与公共规则和 M2 灵感闭环；M3 至 M7 的业务页面仍为导航占位页。`app/src/main/` 存放 Android 源码，`app/src/test/` 存放纯 Kotlin 测试，`app/src/androidTest/` 存放 Room、DataStore、Compose 与 Android 集成测试，`app/schemas/` 保存 Room Schema 快照。`README.md` 是项目入口；`docs/product/` 存放产品需求和页面交互；`docs/reference/` 记录数据模型与统计口径；`docs/how-to/` 提供 MVP 实施和验证步骤；`docs/adr/` 保存长期有效的架构决策。新增内容应放入最贴近其用途的现有目录，不要为尚未实现的模块预建空目录。
 
 ## 构建、测试与本地开发
 
@@ -30,7 +30,7 @@ rtk git status --short
 
 ## 测试与验证要求
 
-测试的详细规则以[代码测试规范](docs/reference/代码测试规范.md)为唯一事实来源。当前尚无应用工程，验证以文档一致性为主；创建 Gradle 工程后，任何业务功能、缺陷修复、数据迁移或外部接口适配都必须先定义正常、边界和失败用例，再实现代码。
+测试的详细规则以[代码测试规范](docs/reference/代码测试规范.md)为唯一事实来源。当前 Android 工程已配置本地单元测试、仪器测试、Lint 和构建门禁，其中仪器测试需要已连接的 API 31 或更高版本设备；任何业务功能、缺陷修复、数据迁移或外部接口适配都必须先定义正常、边界和失败用例，再实现代码。
 
 提交代码前至少满足以下门禁：
 
