@@ -82,7 +82,8 @@ object ScheduleExpansionRules {
             title = TextRules.normalizeRequiredText(rule.courseName, "课程名称"),
             category = EventCategory.STUDY,
             startAt = date.atTime(rule.startTime).atZone(zoneId).toInstant(),
-            endAt = date.atTime(rule.endTime).atZone(zoneId).toInstant()
+            endAt = date.atTime(rule.endTime).atZone(zoneId).toInstant(),
+            location = TextRules.normalizeRequiredText(rule.location, "上课地点")
         )
     }
 

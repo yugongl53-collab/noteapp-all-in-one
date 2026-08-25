@@ -80,6 +80,7 @@ data class CourseRule(
     val id: String,
     val termId: String,
     val courseName: String,
+    val location: String,
     val weekdays: Set<DayOfWeek>,
     val startTime: LocalTime,
     val endTime: LocalTime,
@@ -99,5 +100,6 @@ data class ScheduleInstance(
     val title: String,
     val category: EventCategory,
     val startAt: Instant,
-    val endAt: Instant
+    val endAt: Instant,
+    val location: String? = null
 )
