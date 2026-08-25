@@ -7,14 +7,22 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.yuncun.noteapp.data.repository.ScheduleTaskInput
+import com.yuncun.noteapp.data.local.entity.ScheduleTaskEntity
+import com.yuncun.noteapp.domain.model.EventCategory
+import com.yuncun.noteapp.domain.model.ScheduleType
+import com.yuncun.noteapp.reminder.ReminderPermissionState
 import com.yuncun.noteapp.ui.schedule.ScheduleUiState
 import com.yuncun.noteapp.ui.schedule.ScheduleViewMode
 import com.yuncun.noteapp.ui.screens.CourseEditorDialog
 import com.yuncun.noteapp.ui.screens.OverlapConfirmationDialog
 import com.yuncun.noteapp.ui.screens.ScheduleScreen
 import com.yuncun.noteapp.ui.screens.TaskEditorDialog
+import com.yuncun.noteapp.ui.screens.TaskSummary
 import com.yuncun.noteapp.ui.theme.NoteAppTheme
 import java.time.LocalDate
+import java.time.DayOfWeek
+import java.time.Instant
+import java.time.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -86,6 +94,44 @@ class ScheduleScreensInstrumentedTest {
         assertTrue(confirmed)
     }
 
+    @Test
+    fun enabledReminder_withoutNotificationPermission_isMarkedInactive() {
+        composeRule.setContent {
+            NoteAppTheme {
+                TaskSummary(
+                    task = task(),
+                    reminderPermissions = ReminderPermissionState(
+                        notificationGranted = false,
+                        exactAlarmGranted = true
+                    )
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("提醒已配置但未生效：缺少通知权限").assertIsDisplayed()
+    }
+
+    @Test
+    fun reminderFormWarning_opensReminderSettings() {
+        var opened = false
+        composeRule.setContent {
+            NoteAppTheme {
+                TaskEditorDialog(
+                    entity = null,
+                    suggestions = emptyList(),
+                    onSave = { _, _ -> },
+                    onDismiss = {},
+                    reminderPermissions = ReminderPermissionState(false, false),
+                    onOpenReminderSettings = { opened = true }
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("提醒已配置但未生效：缺少通知权限、“闹钟和提醒”权限").assertIsDisplayed()
+        composeRule.onNodeWithText("前往提醒设置").performClick()
+        assertTrue(opened)
+    }
+
     @androidx.compose.runtime.Composable
     private fun scheduleScreen(onSelectView: (ScheduleViewMode) -> Unit = {}) {
         ScheduleScreen(
@@ -98,4 +144,21 @@ class ScheduleScreensInstrumentedTest {
             onConfirmOverlap = {}, onCancelOverlap = {}
         )
     }
+
+    private fun task() = ScheduleTaskEntity(
+        id = "task",
+        title = "周会",
+        category = EventCategory.WORK,
+        type = ScheduleType.WEEKLY,
+        weekdays = setOf(DayOfWeek.TUESDAY),
+        effectiveFrom = LocalDate.parse("2026-08-24"),
+        date = null,
+        startTime = LocalTime.of(9, 0),
+        endTime = LocalTime.of(10, 0),
+        isEnabled = true,
+        reminderEnabled = true,
+        reminderAdvanceMinutes = 5,
+        createdAt = Instant.parse("2026-08-25T00:00:00Z"),
+        updatedAt = Instant.parse("2026-08-25T00:00:00Z")
+    )
 }
