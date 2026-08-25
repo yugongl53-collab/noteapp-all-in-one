@@ -147,6 +147,30 @@ class DefaultReminderCoordinatorTest {
         assertEquals(shanghaiStart.minusSeconds(3600), alarmGateway.scheduledCandidates.last().startAt)
     }
 
+    @Test
+    fun delayedAlarm_afterEventStarted_doesNotDeliverButStillSchedulesFollowingInstance() = runTest {
+        var currentNow = Instant.parse("2026-08-25T00:00:00Z")
+        val alarmGateway = FakeAlarmGateway()
+        val notifications = FakeNotificationGateway()
+        val coordinator = DefaultReminderCoordinator(
+            repository = FakeScheduleRepository(mutableListOf(weeklyTask("weekly"))),
+            permissionReader = FakePermissionReader(ReminderPermissionState(true, true)),
+            alarmGateway = alarmGateway,
+            notificationGateway = notifications,
+            registry = FakeReminderRegistry(),
+            clock = { currentNow },
+            zoneIdProvider = { zoneId }
+        )
+        coordinator.synchronize()
+        val delayed = alarmGateway.scheduledCandidates.single()
+        currentNow = delayed.startAt.plusSeconds(60)
+
+        coordinator.handleTriggered(delayed)
+
+        assertTrue(notifications.delivered.isEmpty())
+        assertEquals(Instant.parse("2026-08-27T02:00:00Z"), alarmGateway.scheduledCandidates.last().startAt)
+    }
+
     private fun coordinator(
         tasks: List<ScheduleTaskEntity>,
         permissions: ReminderPermissionState = ReminderPermissionState(true, true),
