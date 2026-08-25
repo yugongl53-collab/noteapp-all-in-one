@@ -16,17 +16,17 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 /** DataStore 只保存应用设置与活动番茄钟；系统权限不写入本地偏好。 */
-class AppPreferencesRepository(private val dataStore: DataStore<Preferences>) {
-    val settings: Flow<AppSettings> = dataStore.data.map { preferences ->
+class AppPreferencesRepository(private val dataStore: DataStore<Preferences>) : PomodoroPreferencesStore {
+    override val settings: Flow<AppSettings> = dataStore.data.map { preferences ->
         AppSettings(
             lastFocusMinutes = preferences[Keys.lastFocusMinutes] ?: DEFAULT_FOCUS_MINUTES,
             lastRestMinutes = preferences[Keys.lastRestMinutes] ?: DEFAULT_REST_MINUTES
         )
     }
 
-    val pomodoroSession: Flow<PomodoroSession?> = dataStore.data.map(::readSession)
+    override val pomodoroSession: Flow<PomodoroSession?> = dataStore.data.map(::readSession)
 
-    suspend fun updateSettings(settings: AppSettings) {
+    override suspend fun updateSettings(settings: AppSettings) {
         validateDurations(settings.lastFocusMinutes, settings.lastRestMinutes)
         dataStore.edit { preferences ->
             preferences[Keys.lastFocusMinutes] = settings.lastFocusMinutes
@@ -34,7 +34,7 @@ class AppPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         }
     }
 
-    suspend fun savePomodoroSession(session: PomodoroSession) {
+    override suspend fun savePomodoroSession(session: PomodoroSession) {
         validateSession(session)
         val normalizedTitle = TextRules.normalizeOptionalText(session.title)
         // 单次 edit 原子替换完整会话，避免读取到一半新、一半旧的状态。
@@ -53,7 +53,7 @@ class AppPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         }
     }
 
-    suspend fun clearPomodoroSession() {
+    override suspend fun clearPomodoroSession() {
         dataStore.edit(::clearSessionKeys)
     }
 
