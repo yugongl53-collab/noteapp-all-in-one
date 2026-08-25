@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import com.yuncun.noteapp.data.local.entity.IdeaEntity
 import com.yuncun.noteapp.ui.idea.IdeaDraftState
@@ -15,6 +16,7 @@ import com.yuncun.noteapp.ui.screens.IdeaTrashScreen
 import com.yuncun.noteapp.ui.screens.TodayScreen
 import com.yuncun.noteapp.ui.theme.NoteAppTheme
 import java.time.Instant
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -99,6 +101,28 @@ class IdeaScreensInstrumentedTest {
 
         assertEquals("需要保留的输入", typed)
         assertEquals(1, saveCount)
+    }
+
+    @Test
+    fun today_usesChineseWeekdayAndForwardsSettingsEntry() {
+        var settingsOpened = false
+        composeRule.setContent {
+            NoteAppTheme {
+                TodayScreen(
+                    draft = IdeaDraftState(),
+                    onContentChange = {},
+                    onTagsChange = {},
+                    onSave = {},
+                    onOpenIdeas = {},
+                    onOpenSettings = { settingsOpened = true },
+                    today = LocalDate.of(2026, 8, 25)
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("8 月 25 日 星期二").assertIsDisplayed()
+        composeRule.onNodeWithText("打开设置").performScrollTo().performClick()
+        assertEquals(true, settingsOpened)
     }
 
     @Test
