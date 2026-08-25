@@ -20,7 +20,8 @@ object ReminderScheduleRules {
         terms: List<TermPeriod>,
         configurations: List<ReminderConfiguration>,
         now: Instant,
-        zoneId: ZoneId
+        zoneId: ZoneId,
+        excludedIds: Set<String> = emptySet()
     ): List<ReminderCandidate> {
         val configurationBySource = configurations.associateBy { it.source to it.sourceId }
         val termById = terms.associateBy { it.id }
@@ -30,17 +31,9 @@ object ReminderScheduleRules {
                 ?: return@mapNotNull null
             if (!rule.isEnabled || !configuration.enabled) return@mapNotNull null
             val advanceMinutes = requireAdvanceMinutes(configuration)
-            nextTaskDate(rule, now, zoneId)?.let { date ->
-                val startAt = date.atTime(rule.startTime).atZone(zoneId).toInstant()
-                ReminderCandidate(
-                    source = ScheduleSource.TASK,
-                    sourceId = rule.id,
-                    title = TextRules.normalizeRequiredText(rule.title, "日程名称"),
-                    location = null,
-                    startAt = startAt,
-                    remindAt = startAt.minusSeconds(advanceMinutes * 60L)
-                )
-            }
+            nextTaskDates(rule, now, zoneId)
+                .map { date -> taskCandidate(rule, date, advanceMinutes, zoneId) }
+                .firstOrNull { it.id !in excludedIds }
         }
         val courseCandidates = courses.mapNotNull { rule ->
             val configuration = configurationBySource[ScheduleSource.COURSE to rule.id]
@@ -48,17 +41,9 @@ object ReminderScheduleRules {
             if (!configuration.enabled) return@mapNotNull null
             val term = termById[rule.termId] ?: return@mapNotNull null
             val advanceMinutes = requireAdvanceMinutes(configuration)
-            nextCourseDate(rule, term, now, zoneId)?.let { date ->
-                val startAt = date.atTime(rule.startTime).atZone(zoneId).toInstant()
-                ReminderCandidate(
-                    source = ScheduleSource.COURSE,
-                    sourceId = rule.id,
-                    title = TextRules.normalizeRequiredText(rule.courseName, "课程名称"),
-                    location = TextRules.normalizeRequiredText(rule.location, "上课地点"),
-                    startAt = startAt,
-                    remindAt = startAt.minusSeconds(advanceMinutes * 60L)
-                )
-            }
+            nextCourseDates(rule, term, now, zoneId)
+                .map { date -> courseCandidate(rule, date, advanceMinutes, zoneId) }
+                .firstOrNull { it.id !in excludedIds }
         }
 
         return (taskCandidates + courseCandidates).sortedWith(
@@ -66,21 +51,21 @@ object ReminderScheduleRules {
         )
     }
 
-    private fun nextTaskDate(rule: ScheduleRule, now: Instant, zoneId: ZoneId): LocalDate? {
+    private fun nextTaskDates(rule: ScheduleRule, now: Instant, zoneId: ZoneId): Sequence<LocalDate> {
         validateLocalRange(rule.startTime, rule.endTime)
         return when (rule.type) {
-            ScheduleType.ONE_OFF -> requireNotNull(rule.date) { "单次日程缺少日期" }
-                .takeIf { date -> date.atTime(rule.startTime).atZone(zoneId).toInstant() > now }
+            ScheduleType.ONE_OFF -> sequenceOf(requireNotNull(rule.date) { "单次日程缺少日期" })
+                .filter { date -> date.atTime(rule.startTime).atZone(zoneId).toInstant() > now }
 
             ScheduleType.WEEKLY -> {
                 val effectiveFrom = requireNotNull(rule.effectiveFrom) { "循环日程缺少生效日期" }
                 require(rule.weekdays.isNotEmpty()) { "循环日程至少选择一个星期" }
                 val today = now.atZone(zoneId).toLocalDate()
                 val searchStart = maxOf(today, effectiveFrom)
-                // 最多检查八天，覆盖“今天已开始后顺延到下周同一天”的边界。
-                (0L..7L).asSequence()
+                // 检查两周可在排除刚送达实例后继续找到同一星期的后续实例。
+                (0L..14L).asSequence()
                     .map(searchStart::plusDays)
-                    .firstOrNull { date ->
+                    .filter { date ->
                         date.dayOfWeek in rule.weekdays &&
                             date.atTime(rule.startTime).atZone(zoneId).toInstant() > now
                     }
@@ -88,12 +73,12 @@ object ReminderScheduleRules {
         }
     }
 
-    private fun nextCourseDate(
+    private fun nextCourseDates(
         rule: CourseRule,
         term: TermPeriod,
         now: Instant,
         zoneId: ZoneId
-    ): LocalDate? {
+    ): Sequence<LocalDate> {
         validateLocalRange(rule.startTime, rule.endTime)
         require(rule.weekdays.isNotEmpty()) { "课程至少选择一个星期" }
         require(rule.startWeek > 0 && rule.startWeek <= rule.endWeek) { "课程周次范围无效" }
@@ -101,18 +86,52 @@ object ReminderScheduleRules {
         val firstTeachingWeek = AcademicCalendarRules.weekStart(term.startDate)
             .plusWeeks((rule.startWeek - 1).toLong())
         val searchStart = maxOf(today, term.startDate, firstTeachingWeek)
-        if (searchStart > term.endDate) return null
+        if (searchStart > term.endDate) return emptySequence()
 
-        // 从第一个可能日期向后八天即可覆盖下一次命中的星期，周次规则负责裁剪学期边界。
-        return (0L..7L).asSequence()
+        // 检查两周可覆盖触发后续订，周次规则负责裁剪学期边界。
+        return (0L..14L).asSequence()
             .map(searchStart::plusDays)
             .takeWhile { it <= term.endDate }
-            .firstOrNull { date ->
+            .filter { date ->
                 val week = AcademicCalendarRules.termWeek(term, date)
                 week != null && week in rule.startWeek..rule.endWeek &&
                     date.dayOfWeek in rule.weekdays &&
                     date.atTime(rule.startTime).atZone(zoneId).toInstant() > now
             }
+    }
+
+    private fun taskCandidate(
+        rule: ScheduleRule,
+        date: LocalDate,
+        advanceMinutes: Int,
+        zoneId: ZoneId
+    ): ReminderCandidate {
+        val startAt = date.atTime(rule.startTime).atZone(zoneId).toInstant()
+        return ReminderCandidate(
+            source = ScheduleSource.TASK,
+            sourceId = rule.id,
+            title = TextRules.normalizeRequiredText(rule.title, "日程名称"),
+            location = null,
+            startAt = startAt,
+            remindAt = startAt.minusSeconds(advanceMinutes * 60L)
+        )
+    }
+
+    private fun courseCandidate(
+        rule: CourseRule,
+        date: LocalDate,
+        advanceMinutes: Int,
+        zoneId: ZoneId
+    ): ReminderCandidate {
+        val startAt = date.atTime(rule.startTime).atZone(zoneId).toInstant()
+        return ReminderCandidate(
+            source = ScheduleSource.COURSE,
+            sourceId = rule.id,
+            title = TextRules.normalizeRequiredText(rule.courseName, "课程名称"),
+            location = TextRules.normalizeRequiredText(rule.location, "上课地点"),
+            startAt = startAt,
+            remindAt = startAt.minusSeconds(advanceMinutes * 60L)
+        )
     }
 
     private fun requireAdvanceMinutes(configuration: ReminderConfiguration): Int {

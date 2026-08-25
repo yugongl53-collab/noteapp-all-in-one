@@ -113,6 +113,13 @@ data class ReminderCandidate(
     val id: String = "${source.name}:${startAt.toEpochMilli()}:$sourceId"
 
     fun shouldNotifyImmediately(now: Instant): Boolean = remindAt <= now && now < startAt
+
+    companion object {
+        /** 注册表清理只解析由本类型生成的稳定标识，损坏值安全返回空。 */
+        fun startAtFromId(id: String): Instant? = runCatching {
+            Instant.ofEpochMilli(id.split(":", limit = 3)[1].toLong())
+        }.getOrNull()
+    }
 }
 
 /** 展开后的具体绝对时间实例，排序键由开始、结束和稳定标识组成。 */

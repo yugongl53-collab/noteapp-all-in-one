@@ -97,14 +97,16 @@ class DefaultReminderCoordinator(
             return@withLock ReminderSyncResult(permissions)
         }
 
-        val candidates = runCatching { loadCandidates() }.getOrElse { error ->
+        val synchronizationNow = clock()
+        val deliveredIds = previousRegistry.deliveredIds.filterTo(mutableSetOf()) { reminderId ->
+            ReminderCandidate.startAtFromId(reminderId)?.let { it > synchronizationNow } == true
+        }
+        val candidates = runCatching { loadCandidates(deliveredIds, synchronizationNow) }.getOrElse { error ->
             return@withLock ReminderSyncResult(
                 permissions = permissions,
                 errorMessage = error.message ?: "读取日程失败"
             )
         }
-        val currentIds = candidates.mapTo(mutableSetOf()) { it.id }
-        val deliveredIds = previousRegistry.deliveredIds.intersect(currentIds).toMutableSet()
         val scheduledIds = mutableSetOf<String>()
         var deliveredImmediately = 0
 
@@ -112,7 +114,7 @@ class DefaultReminderCoordinator(
         previousRegistry.scheduledIds.forEach(alarmGateway::cancel)
         val failure = runCatching {
             candidates.filterNot { it.id in deliveredIds }.forEach { candidate ->
-                if (candidate.shouldNotifyImmediately(clock())) {
+                if (candidate.shouldNotifyImmediately(synchronizationNow)) {
                     notificationGateway.show(candidate)
                     deliveredIds += candidate.id
                     deliveredImmediately += 1
@@ -120,6 +122,15 @@ class DefaultReminderCoordinator(
                     alarmGateway.schedule(candidate)
                     scheduledIds += candidate.id
                 }
+            }
+            if (deliveredImmediately > 0) {
+                // 即时补发也视为一次触发；正常提前量下可立即续订同一规则的后续实例。
+                loadCandidates(deliveredIds, synchronizationNow)
+                    .filter { it.id !in scheduledIds && it.remindAt > synchronizationNow }
+                    .forEach { candidate ->
+                        alarmGateway.schedule(candidate)
+                        scheduledIds += candidate.id
+                    }
             }
         }.exceptionOrNull()
         if (failure != null) {
@@ -157,7 +168,7 @@ class DefaultReminderCoordinator(
         synchronize()
     }
 
-    private suspend fun loadCandidates(): List<ReminderCandidate> {
+    private suspend fun loadCandidates(excludedIds: Set<String>, now: Instant): List<ReminderCandidate> {
         val snapshot = repository.load()
         val configurations = snapshot.tasks.map(ScheduleTaskEntity::toReminderConfiguration) +
             snapshot.courses.map(CourseScheduleEntity::toReminderConfiguration)
@@ -166,8 +177,9 @@ class DefaultReminderCoordinator(
             courses = snapshot.courses.map(CourseScheduleEntity::toRule),
             terms = snapshot.terms.map { it.toPeriod() },
             configurations = configurations,
-            now = clock(),
-            zoneId = zoneId
+            now = now,
+            zoneId = zoneId,
+            excludedIds = excludedIds
         )
     }
 }
