@@ -80,7 +80,11 @@ class ScheduleViewModel(
     }
 
     fun selectView(mode: ScheduleViewMode) {
-        _uiState.update { derive(it.copy(viewMode = mode)) }
+        // 事件流定义为“本周接下来”，切入时主动回到当前自然周。
+        _uiState.update {
+            val selectedWeek = if (mode == ScheduleViewMode.EVENT_STREAM) today() else it.selectedWeek
+            derive(it.copy(viewMode = mode, selectedWeek = selectedWeek))
+        }
     }
 
     fun previousWeek() = selectWeek(_uiState.value.selectedWeek.minusWeeks(1))

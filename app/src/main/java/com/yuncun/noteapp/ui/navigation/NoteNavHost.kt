@@ -25,6 +25,7 @@ import androidx.navigation.navArgument
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yuncun.noteapp.NoteApp
 import com.yuncun.noteapp.ui.idea.IdeaViewModel
+import com.yuncun.noteapp.ui.schedule.ScheduleViewModel
 import com.yuncun.noteapp.ui.screens.IdeaEditScreen
 import com.yuncun.noteapp.ui.screens.IdeaScreen
 import com.yuncun.noteapp.ui.screens.IdeaTrashScreen
@@ -48,12 +49,21 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
     val ideaState by ideaViewModel.uiState.collectAsState()
     val quickDraft by ideaViewModel.quickDraft.collectAsState()
     val editorDraft by ideaViewModel.editorDraft.collectAsState()
+    val scheduleFactory = remember(application) { ScheduleViewModel.Factory(application.scheduleRepository) }
+    val scheduleViewModel: ScheduleViewModel = viewModel(factory = scheduleFactory)
+    val scheduleState by scheduleViewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(ideaState.feedback) {
         ideaState.feedback?.let { message ->
             snackbarHostState.showSnackbar(message)
             ideaViewModel.consumeFeedback()
+        }
+    }
+    LaunchedEffect(scheduleState.feedback) {
+        scheduleState.feedback?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            scheduleViewModel.consumeFeedback()
         }
     }
 
@@ -136,7 +146,21 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
                 )
             }
             composable(Screen.Schedule.route) {
-                ScheduleScreen()
+                ScheduleScreen(
+                    state = scheduleState,
+                    onSelectView = scheduleViewModel::selectView,
+                    onPreviousWeek = scheduleViewModel::previousWeek,
+                    onNextWeek = scheduleViewModel::nextWeek,
+                    onCurrentWeek = scheduleViewModel::currentWeek,
+                    onSaveTerm = scheduleViewModel::saveTerm,
+                    onDeleteTerm = scheduleViewModel::deleteTerm,
+                    onSaveTask = scheduleViewModel::saveTask,
+                    onDeleteTask = scheduleViewModel::deleteTask,
+                    onSaveCourse = scheduleViewModel::saveCourse,
+                    onDeleteCourse = scheduleViewModel::deleteCourse,
+                    onConfirmOverlap = scheduleViewModel::confirmOverlapSave,
+                    onCancelOverlap = scheduleViewModel::cancelOverlapSave
+                )
             }
             composable(Screen.Pomodoro.route) {
                 PomodoroScreen()
