@@ -132,3 +132,11 @@ data class ScheduleInstance(
     val endAt: Instant,
     val location: String? = null
 )
+
+/** 事件池抽取只依赖稳定标识、名称、性质和启用状态，不向领域规则泄漏 Room。 */
+data class EventPoolCandidate(
+    val id: String,
+    val title: String,
+    val category: EventCategory,
+    val isEnabled: Boolean
+)
