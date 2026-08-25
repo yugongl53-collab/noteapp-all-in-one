@@ -3,8 +3,14 @@ package com.yuncun.noteapp.domain
 import com.yuncun.noteapp.domain.model.EventCategory
 import com.yuncun.noteapp.domain.model.ScheduleInstance
 import com.yuncun.noteapp.domain.model.ScheduleSource
+import com.yuncun.noteapp.domain.model.ScheduleRule
+import com.yuncun.noteapp.domain.model.ScheduleType
+import com.yuncun.noteapp.domain.rules.ScheduleConflictRules
 import com.yuncun.noteapp.domain.rules.ScheduleViewRules
+import java.time.DayOfWeek
 import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -52,6 +58,16 @@ class ScheduleViewRulesTest {
         assertEquals(listOf("最新名称", "重复名称", "旧名称"), names)
     }
 
+    @Test
+    fun taskConflict_detectsRecurringOverlapButAllowsAdjacentTime() {
+        val existing = schedule("existing", LocalTime.of(9, 0), LocalTime.of(10, 0))
+        val overlapping = schedule("new", LocalTime.of(9, 30), LocalTime.of(10, 30))
+        val adjacent = schedule("adjacent", LocalTime.of(10, 0), LocalTime.of(11, 0))
+
+        assertTrue(ScheduleConflictRules.tasksConflict(existing, overlapping))
+        assertFalse(ScheduleConflictRules.tasksConflict(existing, adjacent))
+    }
+
     private fun instance(id: String, title: String, start: String, end: String) = ScheduleInstance(
         sourceId = id,
         source = ScheduleSource.TASK,
@@ -59,5 +75,18 @@ class ScheduleViewRulesTest {
         category = EventCategory.WORK,
         startAt = Instant.parse(start),
         endAt = Instant.parse(end)
+    )
+
+    private fun schedule(id: String, start: LocalTime, end: LocalTime) = ScheduleRule(
+        id = id,
+        title = id,
+        category = EventCategory.WORK,
+        type = ScheduleType.WEEKLY,
+        weekdays = setOf(DayOfWeek.MONDAY),
+        effectiveFrom = LocalDate.parse("2026-08-24"),
+        date = null,
+        startTime = start,
+        endTime = end,
+        isEnabled = true
     )
 }
