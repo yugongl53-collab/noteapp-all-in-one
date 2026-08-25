@@ -11,7 +11,7 @@
 ## 决策
 
 - 使用 Kotlin、Jetpack Compose 和 Material 3 开发原生 Android 应用，`applicationId` 为 `com.yuncun.noteapp`。
-- 最低支持 Android 12（API 31），`compileSdk` 与 `targetSdk` 使用 API 37，只适配手机竖屏并跟随系统明暗主题。
+- 最低支持 Android 12（API 31），`compileSdk` 与 `targetSdk` 当前使用 API 35，只适配手机竖屏并跟随系统明暗主题。
 - MVP 使用单 `app` 模块并按功能分包，不为暂不支持的平台或功能预建模块。
 - 使用 Room 保存结构化业务数据，DataStore 保存轻量设置和活动番茄钟状态；使用 Navigation Compose、ViewModel 与 Coroutines 组织导航、生命周期状态和异步任务。
 - 使用 kotlinx.serialization 生成和校验带格式版本的 JSON 备份，避免手写字段解析和类型转换。
