@@ -26,40 +26,42 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class AppPreferencesInstrumentedTest {
     @Test
-    fun settingsAndSession_surviveStoreRecreationAndCanClearSession() = runBlocking {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val file = File(context.cacheDir, "m1-preferences-test.preferences_pb")
-        file.delete()
-        var scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        var repository = AppPreferencesRepository(
-            PreferenceDataStoreFactory.create(scope = scope, produceFile = { file })
-        )
-        val session = PomodoroSession(
-            id = "session",
-            title = "阅读",
-            phase = PomodoroPhase.FOCUS,
-            plannedFocusMinutes = 30,
-            plannedRestMinutes = 5,
-            startedAt = Instant.parse("2026-08-25T00:00:00Z"),
-            targetEndAt = Instant.parse("2026-08-25T00:30:00Z"),
-            remainingSeconds = null,
-            state = PomodoroState.RUNNING,
-            updatedAt = Instant.parse("2026-08-25T00:00:00Z")
-        )
-        repository.updateSettings(AppSettings(30, 10))
-        repository.savePomodoroSession(session)
-        // 等待旧 DataStore 的协程完全结束，模拟进程重建时文件锁已释放。
-        scope.coroutineContext[Job]?.cancelAndJoin()
+    fun settingsAndSession_surviveStoreRecreationAndCanClearSession() {
+        runBlocking {
+            val context = InstrumentationRegistry.getInstrumentation().targetContext
+            val file = File(context.cacheDir, "m1-preferences-test.preferences_pb")
+            file.delete()
+            var scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+            var repository = AppPreferencesRepository(
+                PreferenceDataStoreFactory.create(scope = scope, produceFile = { file })
+            )
+            val session = PomodoroSession(
+                id = "session",
+                title = "阅读",
+                phase = PomodoroPhase.FOCUS,
+                plannedFocusMinutes = 30,
+                plannedRestMinutes = 5,
+                startedAt = Instant.parse("2026-08-25T00:00:00Z"),
+                targetEndAt = Instant.parse("2026-08-25T00:30:00Z"),
+                remainingSeconds = null,
+                state = PomodoroState.RUNNING,
+                updatedAt = Instant.parse("2026-08-25T00:00:00Z")
+            )
+            repository.updateSettings(AppSettings(30, 10))
+            repository.savePomodoroSession(session)
+            // 等待旧 DataStore 的协程完全结束，模拟进程重建时文件锁已释放。
+            scope.coroutineContext[Job]?.cancelAndJoin()
 
-        scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        repository = AppPreferencesRepository(
-            PreferenceDataStoreFactory.create(scope = scope, produceFile = { file })
-        )
-        assertEquals(AppSettings(30, 10), repository.settings.first())
-        assertEquals(session, repository.pomodoroSession.first())
-        repository.clearPomodoroSession()
-        assertNull(repository.pomodoroSession.first())
-        scope.coroutineContext[Job]?.cancelAndJoin()
-        file.delete()
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+            repository = AppPreferencesRepository(
+                PreferenceDataStoreFactory.create(scope = scope, produceFile = { file })
+            )
+            assertEquals(AppSettings(30, 10), repository.settings.first())
+            assertEquals(session, repository.pomodoroSession.first())
+            repository.clearPomodoroSession()
+            assertNull(repository.pomodoroSession.first())
+            scope.coroutineContext[Job]?.cancelAndJoin()
+            file.delete()
+        }
     }
 }
