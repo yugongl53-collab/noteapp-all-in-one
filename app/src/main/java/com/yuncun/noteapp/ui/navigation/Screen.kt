@@ -1,31 +1,27 @@
 package com.yuncun.noteapp.ui.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.Today
-import androidx.compose.material.icons.filled.QueryStats
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Timer
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
- * 顶层导航路由定义与底栏图标配置
+ * 顶层导航路由定义与底栏四大主Tab配置（日程、灵感、工具箱、设置）
  */
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
-    object Today : Screen("today", "今日", Icons.Default.Today)
     object Schedule : Screen("schedule", "日程", Icons.Default.DateRange)
     object Idea : Screen("ideas", "灵感", Icons.Default.Lightbulb)
-    object Pomodoro : Screen("pomodoro", "番茄钟", Icons.Default.Timer)
-    object Statistics : Screen("statistics", "统计", Icons.Default.QueryStats)
+    object Toolbox : Screen("toolbox", "工具箱", Icons.Default.Build)
     object Settings : Screen("settings", "设置", Icons.Default.Settings)
 
     companion object {
-        val bottomNavItems = listOf(Today, Schedule, Idea, Statistics)
+        val bottomNavItems = listOf(Schedule, Idea, Toolbox, Settings)
     }
 }
 
-/** M2 二级页面不占用底栏位置，均从今日页进入。 */
+/** 灵感二级页面路由 */
 object IdeaRoutes {
     const val TRASH = "ideas/trash"
     const val EDIT_PATTERN = "ideas/edit/{ideaId}"
@@ -34,9 +30,9 @@ object IdeaRoutes {
     fun edit(ideaId: String = NEW_ID): String = "ideas/edit/$ideaId"
 }
 
-/** M5 二级页按入口选择初始分区，页内切换不再增加导航栈。 */
+/** 工具箱（番茄钟与事件抽奖）二级页按入口选择初始分区 */
 object PomodoroRoutes {
-    const val PATTERN = "pomodoro/{section}"
-    fun timer(): String = "pomodoro/timer"
-    fun pool(): String = "pomodoro/pool"
+    const val PATTERN = "toolbox/{section}"
+    fun timer(): String = "toolbox/timer"
+    fun pool(): String = "toolbox/pool"
 }

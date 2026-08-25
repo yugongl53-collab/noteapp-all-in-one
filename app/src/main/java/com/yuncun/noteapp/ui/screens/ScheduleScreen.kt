@@ -56,6 +56,13 @@ import java.time.DayOfWeek
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import com.yuncun.noteapp.domain.model.EventCategory
+import com.yuncun.noteapp.ui.statistics.StatisticsPeriod
+import com.yuncun.noteapp.ui.statistics.StatisticsRanking
+import com.yuncun.noteapp.ui.statistics.StatisticsUiState
+import com.yuncun.noteapp.ui.statistics.TimeRecordDraftState
+
 private enum class ScheduleManager { TASKS, COURSES, TERMS }
 private val weekDateFormatter = DateTimeFormatter.ofPattern("M.d")
 private val cardTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
@@ -65,7 +72,7 @@ private val chineseWeekdays = mapOf(
     DayOfWeek.SUNDAY to "周日"
 )
 
-/** M3 日程首页只负责查看和打开配置入口，所有写入仍在独立表单中完成。 */
+/** 日程首页整合课表、事件流与时间统计三大视图。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleScreen(
@@ -84,7 +91,26 @@ fun ScheduleScreen(
     onCancelOverlap: () -> Unit,
     modifier: Modifier = Modifier,
     reminderPermissions: ReminderPermissionState = ReminderPermissionState(true, true),
-    onOpenReminderSettings: () -> Unit = {}
+    onOpenReminderSettings: () -> Unit = {},
+    statisticsState: StatisticsUiState? = null,
+    statisticsDraft: TimeRecordDraftState? = null,
+    onSelectPeriod: (StatisticsPeriod) -> Unit = {},
+    onSelectRanking: (StatisticsRanking) -> Unit = {},
+    onPreviousPeriod: () -> Unit = {},
+    onNextPeriod: () -> Unit = {},
+    onCurrentPeriod: () -> Unit = {},
+    onRetryStatistics: () -> Unit = {},
+    onAddRecord: () -> Unit = {},
+    onEditRecord: (String) -> Unit = {},
+    onDeleteRecord: (String) -> Unit = {},
+    onUpdateRecordTitle: (String) -> Unit = {},
+    onUpdateRecordCategory: (EventCategory) -> Unit = {},
+    onUpdateRecordStartDate: (String) -> Unit = {},
+    onUpdateRecordStartTime: (String) -> Unit = {},
+    onUpdateRecordEndDate: (String) -> Unit = {},
+    onUpdateRecordEndTime: (String) -> Unit = {},
+    onSaveRecordDraft: () -> Unit = {},
+    onDismissRecordEditor: () -> Unit = {}
 ) {
     var manager by remember { mutableStateOf<ScheduleManager?>(null) }
     var editingTerm by remember { mutableStateOf<AcademicTermEntity?>(null) }
@@ -124,41 +150,76 @@ fun ScheduleScreen(
                     onClick = { onSelectView(ScheduleViewMode.EVENT_STREAM) },
                     label = { Text("事件流") }
                 )
+                FilterChip(
+                    selected = state.viewMode == ScheduleViewMode.STATISTICS,
+                    onClick = { onSelectView(ScheduleViewMode.STATISTICS) },
+                    label = { Text("时间统计") }
+                )
             }
-            WeekControls(state, onPreviousWeek, onNextWeek, onCurrentWeek)
-            Row(
-                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(onClick = { manager = ScheduleManager.TASKS }) {
-                    Icon(Icons.Default.Event, null); Text("普通事件")
-                }
-                OutlinedButton(onClick = { manager = ScheduleManager.COURSES }) {
-                    Icon(Icons.Default.MenuBook, null); Text("课程")
-                }
-                OutlinedButton(onClick = { manager = ScheduleManager.TERMS }) {
-                    Icon(Icons.Default.School, null); Text("学期")
-                }
-            }
-            val hasConfiguredReminder = state.tasks.any { it.isEnabled && it.reminderEnabled } ||
-                state.courses.any { it.reminderEnabled }
-            if (hasConfiguredReminder && !reminderPermissions.isEffective) {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            "提醒已配置但未生效：缺少${reminderPermissions.missingReason()}",
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        OutlinedButton(onClick = onOpenReminderSettings) { Text("提醒设置") }
+            if (state.viewMode == ScheduleViewMode.STATISTICS) {
+                if (statisticsState != null && statisticsDraft != null) {
+                    StatisticsScreen(
+                        state = statisticsState,
+                        draft = statisticsDraft,
+                        onSelectPeriod = onSelectPeriod,
+                        onSelectRanking = onSelectRanking,
+                        onPreviousPeriod = onPreviousPeriod,
+                        onNextPeriod = onNextPeriod,
+                        onCurrentPeriod = onCurrentPeriod,
+                        onRetry = onRetryStatistics,
+                        onAddRecord = onAddRecord,
+                        onEditRecord = onEditRecord,
+                        onDeleteRecord = onDeleteRecord,
+                        onUpdateTitle = onUpdateRecordTitle,
+                        onUpdateCategory = onUpdateRecordCategory,
+                        onUpdateStartDate = onUpdateRecordStartDate,
+                        onUpdateStartTime = onUpdateRecordStartTime,
+                        onUpdateEndDate = onUpdateRecordEndDate,
+                        onUpdateEndTime = onUpdateRecordEndTime,
+                        onSaveDraft = onSaveRecordDraft,
+                        onDismissEditor = onDismissRecordEditor
+                    )
+                } else {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("统计数据加载中…")
                     }
                 }
-            }
-            when {
-                state.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+            } else {
+                WeekControls(state, onPreviousWeek, onNextWeek, onCurrentWeek)
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(onClick = { manager = ScheduleManager.TASKS }) {
+                        Icon(Icons.Default.Event, null); Text("普通事件")
+                    }
+                    OutlinedButton(onClick = { manager = ScheduleManager.COURSES }) {
+                        Icon(Icons.AutoMirrored.Filled.MenuBook, null); Text("课程")
+                    }
+                    OutlinedButton(onClick = { manager = ScheduleManager.TERMS }) {
+                        Icon(Icons.Default.School, null); Text("学期")
+                    }
                 }
-                state.viewMode == ScheduleViewMode.TIMETABLE -> Timetable(state) { selectedInstance = it }
-                else -> EventStream(state.eventStream) { selectedInstance = it }
+                val hasConfiguredReminder = state.tasks.any { it.isEnabled && it.reminderEnabled } ||
+                    state.courses.any { it.reminderEnabled }
+                if (hasConfiguredReminder && !reminderPermissions.isEffective) {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                "提醒已配置但未生效：缺少${reminderPermissions.missingReason()}",
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            OutlinedButton(onClick = onOpenReminderSettings) { Text("提醒设置") }
+                        }
+                    }
+                }
+                when {
+                    state.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                    state.viewMode == ScheduleViewMode.TIMETABLE -> Timetable(state) { selectedInstance = it }
+                    else -> EventStream(state.eventStream) { selectedInstance = it }
+                }
             }
         }
     }

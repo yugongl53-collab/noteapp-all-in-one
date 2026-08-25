@@ -32,7 +32,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class ScheduleViewMode { TIMETABLE, EVENT_STREAM }
+enum class ScheduleViewMode { TIMETABLE, EVENT_STREAM, STATISTICS }
 
 data class ScheduleUiState(
     val isLoading: Boolean = true,

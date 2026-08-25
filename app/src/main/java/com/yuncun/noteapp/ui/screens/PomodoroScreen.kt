@@ -56,14 +56,13 @@ import com.yuncun.noteapp.domain.model.PomodoroSession
 import com.yuncun.noteapp.domain.model.PomodoroState
 import com.yuncun.noteapp.ui.pomodoro.PomodoroUiState
 
-/** M5 单页承载事件池抽取与纯番茄计时，两条流程只通过可选事项名称连接。 */
+/** M5 工具箱承载事件池抽取与纯番茄计时，两条流程只通过可选事项名称连接。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PomodoroScreen(
     state: PomodoroUiState,
     initialSection: String,
     notificationGranted: Boolean,
-    onBack: () -> Unit,
     onSavePoolItem: (String?, String, EventCategory, Boolean) -> Unit,
     onSetPoolItemEnabled: (String, Boolean) -> Unit,
     onDeletePoolItem: (String) -> Unit,
@@ -76,7 +75,8 @@ fun PomodoroScreen(
     onStartRest: () -> Unit,
     onClearSession: () -> Unit,
     onRequestNotificationPermission: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null
 ) {
     var section by rememberSaveable { mutableStateOf(initialSection) }
     var editingItem by remember { mutableStateOf<EventPoolItemEntity?>(null) }
@@ -88,10 +88,12 @@ fun PomodoroScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("随机行动与番茄钟") },
+                title = { Text("工具箱") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        }
                     }
                 }
             )

@@ -10,19 +10,33 @@ import com.yuncun.noteapp.MainActivity
 import org.junit.Rule
 import org.junit.Test
 
-/** 验证 M8 跨页面入口使用真实 Activity 导航，确保备份能力不是孤立页面。 */
+/** 验证四大主Tab（日程、灵感、工具箱、设置）底栏导航与状态切换。 */
 class M8NavigationInstrumentedTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun todaySettingsEntry_opensBackupSettingsAndCanReturn() {
-        composeRule.onNodeWithText("打开设置").performScrollTo().performClick()
+    fun bottomNavigation_switchesAcrossFourMainTabs() {
+        // 默认启动进入「日程」
+        composeRule.onNodeWithText("日程").assertIsDisplayed()
+        composeRule.onNodeWithText("课表").assertIsDisplayed()
 
-        composeRule.onNodeWithText("设置").assertIsDisplayed()
+        // 切换到「灵感」
+        composeRule.onNodeWithText("灵感").performClick()
+        composeRule.onNodeWithText("快速记录灵感").assertIsDisplayed()
+
+        // 切换到「工具箱」
+        composeRule.onNodeWithText("工具箱").performClick()
+        composeRule.onNodeWithText("事件池与抽奖").assertIsDisplayed()
+        composeRule.onNodeWithText("番茄钟").assertIsDisplayed()
+
+        // 切换到「设置」
+        composeRule.onNodeWithText("设置").performClick()
         composeRule.onNodeWithText("导出 JSON 备份").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("返回").performClick()
-        // 返回后页面保留之前的滚动位置，以底栏选中页标题确认已经回到今日路由。
-        composeRule.onNodeWithText("今日").assertIsDisplayed()
+        composeRule.onNodeWithText("外观与主题").performScrollTo().assertIsDisplayed()
+
+        // 再次切回「日程」
+        composeRule.onNodeWithText("日程").performClick()
+        composeRule.onNodeWithText("课表").assertIsDisplayed()
     }
 }

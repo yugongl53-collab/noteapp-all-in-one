@@ -13,10 +13,8 @@ import com.yuncun.noteapp.ui.idea.IdeaUiState
 import com.yuncun.noteapp.ui.screens.IdeaEditScreen
 import com.yuncun.noteapp.ui.screens.IdeaScreen
 import com.yuncun.noteapp.ui.screens.IdeaTrashScreen
-import com.yuncun.noteapp.ui.screens.TodayScreen
 import com.yuncun.noteapp.ui.theme.NoteAppTheme
 import java.time.Instant
-import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -32,7 +30,6 @@ class IdeaScreensInstrumentedTest {
             NoteAppTheme {
                 IdeaScreen(
                     state = IdeaUiState(isLoading = false),
-                    onBack = {},
                     onAdd = {},
                     onEdit = {},
                     onOpenTrash = {}
@@ -49,7 +46,6 @@ class IdeaScreensInstrumentedTest {
             NoteAppTheme {
                 IdeaScreen(
                     state = IdeaUiState(isLoading = true),
-                    onBack = {},
                     onAdd = {},
                     onEdit = {},
                     onOpenTrash = {}
@@ -68,7 +64,6 @@ class IdeaScreensInstrumentedTest {
             NoteAppTheme {
                 IdeaScreen(
                     state = IdeaUiState(isLoading = false, activeIdeas = listOf(idea)),
-                    onBack = {},
                     onAdd = {},
                     onEdit = {},
                     onOpenTrash = {}
@@ -81,17 +76,17 @@ class IdeaScreensInstrumentedTest {
     }
 
     @Test
-    fun todayQuickInput_forwardsTypedContentAndSaveAction() {
+    fun ideaQuickInput_forwardsTypedContentAndSaveAction() {
         var typed = ""
         var saveCount = 0
         composeRule.setContent {
             NoteAppTheme {
-                TodayScreen(
-                    draft = IdeaDraftState(),
-                    onContentChange = { typed = it },
-                    onTagsChange = {},
-                    onSave = { saveCount += 1 },
-                    onOpenIdeas = {}
+                IdeaScreen(
+                    state = IdeaUiState(isLoading = false),
+                    quickDraft = IdeaDraftState(),
+                    onQuickContentChange = { typed = it },
+                    onQuickTagsChange = {},
+                    onQuickSave = { saveCount += 1 }
                 )
             }
         }
@@ -104,25 +99,22 @@ class IdeaScreensInstrumentedTest {
     }
 
     @Test
-    fun today_usesChineseWeekdayAndForwardsSettingsEntry() {
-        var settingsOpened = false
+    fun ideaQuickInput_rendersTagsInputField() {
+        var typedTags = ""
         composeRule.setContent {
             NoteAppTheme {
-                TodayScreen(
-                    draft = IdeaDraftState(),
-                    onContentChange = {},
-                    onTagsChange = {},
-                    onSave = {},
-                    onOpenIdeas = {},
-                    onOpenSettings = { settingsOpened = true },
-                    today = LocalDate.of(2026, 8, 25)
+                IdeaScreen(
+                    state = IdeaUiState(isLoading = false),
+                    quickDraft = IdeaDraftState(),
+                    onQuickContentChange = {},
+                    onQuickTagsChange = { typedTags = it },
+                    onQuickSave = {}
                 )
             }
         }
 
-        composeRule.onNodeWithText("8 月 25 日 星期二").assertIsDisplayed()
-        composeRule.onNodeWithText("打开设置").performScrollTo().performClick()
-        assertEquals(true, settingsOpened)
+        composeRule.onNodeWithText("标签（可选）").performTextInput("开发, 架构")
+        assertEquals("开发, 架构", typedTags)
     }
 
     @Test
