@@ -6,7 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.yuncun.noteapp.data.local.entity.IdeaEntity
 import com.yuncun.noteapp.data.repository.IdeaRepository
 import com.yuncun.noteapp.domain.rules.IdeaRules
+import java.time.Duration
 import java.time.Instant
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,6 +40,7 @@ class IdeaViewModel(
     private val repository: IdeaRepository,
     private val clock: () -> Instant = Instant::now
 ) : ViewModel() {
+    private var expirationCleanupJob: Job? = null
     private val _uiState = MutableStateFlow(IdeaUiState())
     val uiState: StateFlow<IdeaUiState> = _uiState.asStateFlow()
 
@@ -55,6 +59,7 @@ class IdeaViewModel(
             _uiState.update { it.copy(isLoading = true) }
             runCatching { repository.refresh(clock()) }
                 .onSuccess { snapshot ->
+                    scheduleExpirationCleanup(snapshot.recycledIdeas)
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -191,6 +196,7 @@ class IdeaViewModel(
     private suspend fun reloadAfterOperation(successMessage: String) {
         runCatching { repository.refresh(clock()) }
             .onSuccess { snapshot ->
+                scheduleExpirationCleanup(snapshot.recycledIdeas)
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -220,6 +226,20 @@ class IdeaViewModel(
 
     private fun failureMessage(prefix: String, error: Throwable): String =
         "$prefix：${error.message ?: "未知错误"}"
+
+    /** 进程持续运行时等待最近到期点并刷新；重启后仍由仓储首次读取兜底清理。 */
+    private fun scheduleExpirationCleanup(recycledIdeas: List<IdeaEntity>) {
+        expirationCleanupJob?.cancel()
+        val nextExpiration = recycledIdeas.mapNotNull { it.deletedAt }
+            .minOrNull()
+            ?.plus(IdeaRules.retention)
+            ?: return
+        val waitMillis = Duration.between(clock(), nextExpiration).toMillis().coerceAtLeast(0L)
+        expirationCleanupJob = viewModelScope.launch {
+            delay(waitMillis)
+            refresh()
+        }
+    }
 
     class Factory(private val repository: IdeaRepository) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")

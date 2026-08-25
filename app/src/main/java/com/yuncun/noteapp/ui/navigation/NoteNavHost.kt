@@ -98,10 +98,10 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
                     onContentChange = ideaViewModel::updateQuickContent,
                     onTagsChange = ideaViewModel::updateQuickTags,
                     onSave = ideaViewModel::saveQuickIdea,
-                    onOpenIdeas = { navController.navigate(IdeaRoutes.LIST) }
+                    onOpenIdeas = { navController.navigate(Screen.Idea.route) }
                 )
             }
-            composable(IdeaRoutes.LIST) {
+            composable(Screen.Idea.route) {
                 IdeaScreen(
                     state = ideaState,
                     onBack = navController::popBackStack,

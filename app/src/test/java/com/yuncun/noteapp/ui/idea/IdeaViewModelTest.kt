@@ -3,13 +3,16 @@ package com.yuncun.noteapp.ui.idea
 import com.yuncun.noteapp.data.local.entity.IdeaEntity
 import com.yuncun.noteapp.data.repository.IdeaRepository
 import com.yuncun.noteapp.data.repository.IdeaSnapshot
+import com.yuncun.noteapp.domain.rules.IdeaRules
 import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -94,16 +97,39 @@ class IdeaViewModelTest {
         assertEquals("保存失败，请重试：磁盘不可用", viewModel.uiState.value.feedback)
     }
 
+    @Test
+    fun recycledIdea_isAutomaticallyRemovedAtExactRetentionBoundary() = runTest(dispatcher) {
+        val repository = FakeIdeaRepository()
+        repository.active += IdeaEntity("idea", "待到期", emptyList(), now, now, null)
+        val viewModel = IdeaViewModel(
+            repository = repository,
+            clock = { now.plusMillis(testScheduler.currentTime) }
+        )
+        runCurrent()
+
+        viewModel.moveToTrash("idea")
+        runCurrent()
+        assertEquals(1, viewModel.uiState.value.recycledIdeas.size)
+
+        advanceTimeBy(IdeaRules.retention.toMillis())
+        runCurrent()
+
+        assertTrue(viewModel.uiState.value.recycledIdeas.isEmpty())
+    }
+
     private class FakeIdeaRepository(
         private val saveFailure: Throwable? = null
     ) : IdeaRepository {
         val active = mutableListOf<IdeaEntity>()
         private val recycled = mutableListOf<IdeaEntity>()
 
-        override suspend fun refresh(now: Instant): IdeaSnapshot = IdeaSnapshot(
-            activeIdeas = active.sortedByDescending { it.updatedAt },
-            recycledIdeas = recycled.sortedByDescending { it.deletedAt }
-        )
+        override suspend fun refresh(now: Instant): IdeaSnapshot {
+            recycled.removeAll { IdeaRules.isExpired(requireNotNull(it.deletedAt), now) }
+            return IdeaSnapshot(
+                activeIdeas = active.sortedByDescending { it.updatedAt },
+                recycledIdeas = recycled.sortedByDescending { it.deletedAt }
+            )
+        }
 
         override suspend fun create(content: String, tags: List<String>, now: Instant): IdeaEntity {
             saveFailure?.let { throw it }

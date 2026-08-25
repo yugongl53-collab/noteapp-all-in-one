@@ -45,10 +45,10 @@ fun IdeaTrashScreen(
     onBack: () -> Unit,
     onRestore: (String) -> Unit,
     onPermanentlyDelete: (String) -> Unit,
+    now: Instant = Instant.now(),
     modifier: Modifier = Modifier
 ) {
     var pendingDelete by remember { mutableStateOf<IdeaEntity?>(null) }
-    val now = Instant.now()
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {

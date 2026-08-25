@@ -137,7 +137,8 @@ class IdeaScreensInstrumentedTest {
                     state = IdeaUiState(isLoading = false, recycledIdeas = listOf(idea)),
                     onBack = {},
                     onRestore = {},
-                    onPermanentlyDelete = { deletedId = it }
+                    onPermanentlyDelete = { deletedId = it },
+                    now = deletedAt
                 )
             }
         }
