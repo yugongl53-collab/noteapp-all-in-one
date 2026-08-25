@@ -108,7 +108,7 @@ fun IdeaTrashScreen(
                 TextButton(onClick = {
                     pendingDelete = null
                     onPermanentlyDelete(idea.id)
-                }) { Text("永久删除") }
+                }) { Text("确认永久删除") }
             },
             dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("取消") } }
         )

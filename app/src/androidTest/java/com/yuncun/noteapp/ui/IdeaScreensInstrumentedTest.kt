@@ -145,7 +145,7 @@ class IdeaScreensInstrumentedTest {
 
         composeRule.onAllNodesWithText("永久删除")[0].performClick()
         composeRule.onNodeWithText("永久删除灵感？").assertIsDisplayed()
-        composeRule.onAllNodesWithText("永久删除")[1].performClick()
+        composeRule.onNodeWithText("确认永久删除").performClick()
 
         assertEquals("idea", deletedId)
     }
