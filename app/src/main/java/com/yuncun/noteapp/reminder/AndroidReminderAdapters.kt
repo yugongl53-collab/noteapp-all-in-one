@@ -106,7 +106,7 @@ class AndroidReminderAlarmGateway(private val context: Context) : ReminderAlarmG
     }
 }
 
-/** 通知渠道只在首次实际发送时创建，内容不暴露除标题、时间和可选地点外的数据。 */
+/** 通知渠道只在首次实际发送时创建，内容不暴露除标题和可选地点外的数据。 */
 class AndroidReminderNotificationGateway(private val context: Context) : ReminderNotificationGateway {
     private val notificationManager = context.getSystemService(NotificationManager::class.java)
 
