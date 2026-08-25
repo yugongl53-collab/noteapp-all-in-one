@@ -5,20 +5,34 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.yuncun.noteapp.NoteApp
+import com.yuncun.noteapp.ui.idea.IdeaViewModel
+import com.yuncun.noteapp.ui.screens.IdeaEditScreen
 import com.yuncun.noteapp.ui.screens.IdeaScreen
+import com.yuncun.noteapp.ui.screens.IdeaTrashScreen
 import com.yuncun.noteapp.ui.screens.PomodoroScreen
 import com.yuncun.noteapp.ui.screens.ScheduleScreen
 import com.yuncun.noteapp.ui.screens.SettingsScreen
 import com.yuncun.noteapp.ui.screens.StatisticsScreen
+import com.yuncun.noteapp.ui.screens.TodayScreen
 
 /**
  * 主界面脚手架与顶层底栏导航容器
@@ -28,41 +42,98 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val application = LocalContext.current.applicationContext as NoteApp
+    val ideaFactory = remember(application) { IdeaViewModel.Factory(application.ideaRepository) }
+    val ideaViewModel: IdeaViewModel = viewModel(factory = ideaFactory)
+    val ideaState by ideaViewModel.uiState.collectAsState()
+    val quickDraft by ideaViewModel.quickDraft.collectAsState()
+    val editorDraft by ideaViewModel.editorDraft.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(ideaState.feedback) {
+        ideaState.feedback?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            ideaViewModel.consumeFeedback()
+        }
+    }
 
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            NavigationBar {
-                Screen.bottomNavItems.forEach { screen ->
-                    val selected = currentRoute == screen.route
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                            if (currentRoute != screen.route) {
-                                navController.navigate(screen.route) {
-                                    // 弹出到导航栈起始位置，避免底栏堆积过多回退状态
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
+            if (Screen.bottomNavItems.any { it.route == currentRoute }) {
+                NavigationBar {
+                    Screen.bottomNavItems.forEach { screen ->
+                        val selected = currentRoute == screen.route
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = {
+                                if (currentRoute != screen.route) {
+                                    navController.navigate(screen.route) {
+                                        // 弹出到导航栈起始位置，避免底栏堆积过多回退状态
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
                                 }
-                            }
-                        },
-                        icon = { Icon(screen.icon, contentDescription = screen.title) },
-                        label = { Text(screen.title) }
-                    )
+                            },
+                            icon = { Icon(screen.icon, contentDescription = screen.title) },
+                            label = { Text(screen.title) }
+                        )
+                    }
                 }
             }
         }
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Idea.route,
+            startDestination = Screen.Today.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(Screen.Idea.route) {
-                IdeaScreen()
+            composable(Screen.Today.route) {
+                TodayScreen(
+                    draft = quickDraft,
+                    onContentChange = ideaViewModel::updateQuickContent,
+                    onTagsChange = ideaViewModel::updateQuickTags,
+                    onSave = ideaViewModel::saveQuickIdea,
+                    onOpenIdeas = { navController.navigate(IdeaRoutes.LIST) }
+                )
+            }
+            composable(IdeaRoutes.LIST) {
+                IdeaScreen(
+                    state = ideaState,
+                    onBack = navController::popBackStack,
+                    onAdd = { navController.navigate(IdeaRoutes.edit()) },
+                    onEdit = { navController.navigate(IdeaRoutes.edit(it)) },
+                    onOpenTrash = { navController.navigate(IdeaRoutes.TRASH) }
+                )
+            }
+            composable(
+                route = IdeaRoutes.EDIT_PATTERN,
+                arguments = listOf(navArgument("ideaId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val ideaId = backStackEntry.arguments?.getString("ideaId")
+                    ?.takeUnless { it == IdeaRoutes.NEW_ID }
+                IdeaEditScreen(
+                    draft = editorDraft,
+                    state = ideaState,
+                    onPrepare = { ideaViewModel.prepareEditor(ideaId) },
+                    onContentChange = ideaViewModel::updateEditorContent,
+                    onTagsChange = ideaViewModel::updateEditorTags,
+                    onSave = ideaViewModel::saveEditor,
+                    onMoveToTrash = ideaViewModel::moveToTrash,
+                    onBack = navController::popBackStack
+                )
+            }
+            composable(IdeaRoutes.TRASH) {
+                IdeaTrashScreen(
+                    state = ideaState,
+                    onBack = navController::popBackStack,
+                    onRestore = ideaViewModel::restore,
+                    onPermanentlyDelete = ideaViewModel::permanentlyDelete
+                )
             }
             composable(Screen.Schedule.route) {
                 ScheduleScreen()
