@@ -2,7 +2,7 @@
 
 ## 项目结构与模块组织
 
-本仓库当前处于一站笔记的产品规划阶段，尚无应用源码或可安装版本。`README.md` 是项目入口；`docs/product/` 存放产品需求和页面交互；`docs/reference/` 记录数据模型与统计口径；`docs/how-to/` 提供 MVP 实施和验证步骤；`docs/adr/` 保存长期有效的架构决策。新增文档应放入最贴近其用途的现有目录，不要为尚未实现的模块预建空目录。
+本仓库已完成 M0 工程骨架和 M1 数据层与公共规则，当前用户界面仍为后续里程碑的导航占位页。`app/src/main/` 存放 Android 源码，`app/src/test/` 存放纯 Kotlin 测试，`app/src/androidTest/` 存放 Room、DataStore 与 Android 集成测试，`app/schemas/` 保存 Room Schema 快照。`README.md` 是项目入口；`docs/product/` 存放产品需求和页面交互；`docs/reference/` 记录数据模型与统计口径；`docs/how-to/` 提供 MVP 实施和验证步骤；`docs/adr/` 保存长期有效的架构决策。新增内容应放入最贴近其用途的现有目录，不要为尚未实现的模块预建空目录。
 
 ## 构建、测试与本地开发
 

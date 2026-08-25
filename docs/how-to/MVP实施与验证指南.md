@@ -6,7 +6,7 @@
 
 产品范围以[产品需求文档](../product/产品需求文档.md)为准，页面状态以[页面与交互说明](../product/页面与交互说明.md)为准，字段和计算规则以[数据模型与统计口径](../reference/数据模型与统计口径.md)为准，测试方法和门禁以[代码测试规范](../reference/代码测试规范.md)为准，工程选型以[技术栈 ADR](../adr/0001-采用原生Android技术栈.md)为准。本文档只定义执行顺序，不重复这些事实来源。
 
-当前状态是“规划完成、尚未创建 Android 工程”。工程建立前，本文列出的 Gradle 命令是目标门禁，当前不能运行。
+当前已完成 M0 工程骨架和 M1 数据层与公共规则。Gradle Wrapper、单元测试、Lint、Debug 构建与仪器测试编译均可运行；M2 至 M7 的业务页面仍是占位页，不应把目标能力描述为当前可用界面。
 
 ## 2. 成功标准
 
@@ -85,12 +85,22 @@ MVP 只有满足以下条件才可交付：
 
 目标是固定本地唯一事实来源，避免页面各自实现日期、排序和校验。
 
-- [ ] 按数据模型实现 `Idea`、`ScheduleTask`、`AcademicTerm`、`CourseSchedule`、`EventPoolItem` 和 `TimeRecord` 的 Room 实体、DAO 与数据库。
-- [ ] 使用 DataStore 保存 `AppSettings` 和活动 `PomodoroSession`；系统权限只读取 Android 当前状态。
-- [ ] 实现固定事件性质、文本规范化、绝对时间存储和当前设备时区转换。
-- [ ] 实现学期名称、自然周、学期周次、假期标签、日程实例展开和稳定排序纯函数。
-- [ ] 实现时间记录范围校验、相邻允许与重叠拒绝规则。
-- [ ] 为数据库约束、事务、日期边界、跨时区和夏令时场景编写测试。
+- [x] 按数据模型实现 `Idea`、`ScheduleTask`、`AcademicTerm`、`CourseSchedule`、`EventPoolItem` 和 `TimeRecord` 的 Room 实体、DAO 与数据库。
+- [x] 使用 DataStore 保存 `AppSettings` 和活动 `PomodoroSession`；系统权限只读取 Android 当前状态。
+- [x] 实现固定事件性质、文本规范化、绝对时间存储和当前设备时区转换。
+- [x] 实现学期名称、自然周、学期周次、假期标签、日程实例展开和稳定排序纯函数。
+- [x] 实现时间记录范围校验、相邻允许与重叠拒绝规则。
+- [x] 为数据库约束、事务、日期边界、跨时区和夏令时场景编写测试。
+
+M1 最小验证命令：
+
+```bash
+./gradlew testDebugUnitTest
+./gradlew assembleDebugAndroidTest
+./gradlew connectedDebugAndroidTest
+```
+
+前两条命令不需要设备；第三条必须连接 API 31 或更高版本的模拟器或实体手机。预期结果是纯 Kotlin 规则测试通过、仪器测试 APK 编译成功，并在设备上完成 Room 外键/重叠/重启与 DataStore 重建用例。
 
 阶段出口：公共规则不依赖 Compose 即可测试；数据库重启后数据一致；同名学期、重叠学期和悬空引用不能写入。
 
