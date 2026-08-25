@@ -1,6 +1,22 @@
-# 一站笔记
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/banner-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/banner-light.svg">
+    <img alt="一站笔记 NoteApp All-in-One Banner" src="docs/assets/banner-light.svg" width="100%">
+  </picture>
+</p>
 
-一站笔记是一款正在按 MVP 里程碑开发的 Android 个人效率应用，目标是把灵感记录、学期日程、番茄钟、随机行动选择和时间统计集中在一个轻量工具中。
+<p align="center">
+  <img src="https://img.shields.io/badge/Platform-Android_12+_--_API_31+-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android 12+">
+  <img src="https://img.shields.io/badge/UI-Jetpack_Compose_Material_3-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white" alt="Compose M3">
+  <img src="https://img.shields.io/badge/Language-Kotlin_2.0-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin">
+  <img src="https://img.shields.io/badge/Architecture-Local--First_Room_DataStore-0D9488?style=flat-square" alt="Local-First">
+  <img src="https://img.shields.io/badge/Build-Gradle_Wrapper-02303A?style=flat-square&logo=gradle&logoColor=white" alt="Gradle">
+</p>
+
+# 一站笔记 (NoteApp All-in-One)
+
+一站笔记是一款按 MVP 里程碑开发的 Android 个人效率应用，将**灵感记录**、**学期日程**、**番茄专注**、**随机决策**和**时间统计**深度融合在一个轻量、纯粹、本地优先的工具中。
 
 > 当前状态：M8 的单元测试、Lint、Debug/Release 构建和 API 35 模拟器仪器测试已通过。API 31 最低版本兼容、实体手机系统行为和用户 keystore 签名仍是正式交付前置条件，完成前只提供 Debug 验收包，不宣称 Release 已交付。
 
@@ -100,6 +116,7 @@
 - [产品需求文档](docs/product/产品需求文档.md)：产品目标、功能规则、范围和验收标准。
 - [页面与交互说明](docs/product/页面与交互说明.md)：页面结构、主要操作路径和状态反馈。
 - [数据模型与统计口径草案](docs/reference/数据模型与统计口径.md)：核心数据、提醒、备份和时间计算规则。
+- [品牌与视觉设计规范](docs/reference/品牌设计规范.md)：品牌定位、色彩体系、5大模块视觉符号与 Banner 规范。
 - [代码测试规范](docs/reference/代码测试规范.md)：代码测试分层、用例设计、执行门禁和结果记录要求。
 - [MVP 执行计划与验证指南](docs/how-to/MVP实施与验证指南.md)：从工程初始化到 APK 交付的里程碑、任务依赖、阶段出口和验证门禁。
 - [M8 发布验收与 APK 签名](docs/how-to/M8发布验收与APK签名.md)：启动 AVD、执行全量门禁、人工验收、签名和故障排查。
