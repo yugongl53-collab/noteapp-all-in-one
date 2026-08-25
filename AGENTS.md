@@ -2,7 +2,7 @@
 
 ## 项目结构与模块组织
 
-本仓库已完成 M0 工程骨架、M1 数据层与公共规则、M2 灵感闭环、M3 学期日程闭环、M4 日程提醒与权限适配和 M5 事件池与番茄钟；M6 至 M7 的业务页面或系统能力仍待实现。`app/src/main/` 存放 Android 源码，`app/src/test/` 存放纯 Kotlin 测试，`app/src/androidTest/` 存放 Room、DataStore、Compose 与 Android 集成测试，`app/schemas/` 保存 Room Schema 快照。`README.md` 是项目入口；`docs/product/` 存放产品需求和页面交互；`docs/reference/` 记录数据模型与统计口径；`docs/how-to/` 提供 MVP 实施和验证步骤；`docs/adr/` 保存长期有效的架构决策。新增内容应放入最贴近其用途的现有目录，不要为尚未实现的模块预建空目录。
+本仓库已完成 M0 工程骨架、M1 数据层与公共规则、M2 灵感闭环、M3 学期日程闭环、M4 日程提醒与权限适配、M5 事件池与番茄钟和 M6 时间记录与统计；M7 的 JSON 备份与恢复仍待实现。`app/src/main/` 存放 Android 源码，`app/src/test/` 存放纯 Kotlin 测试，`app/src/androidTest/` 存放 Room、DataStore、Compose 与 Android 集成测试，`app/schemas/` 保存 Room Schema 快照。`README.md` 是项目入口；`docs/product/` 存放产品需求和页面交互；`docs/reference/` 记录数据模型与统计口径；`docs/how-to/` 提供 MVP 实施和验证步骤；`docs/adr/` 保存长期有效的架构决策。新增内容应放入最贴近其用途的现有目录，不要为尚未实现的模块预建空目录。
 
 ## 构建、测试与本地开发
 

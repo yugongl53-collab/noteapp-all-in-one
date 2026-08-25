@@ -9,7 +9,9 @@ import com.yuncun.noteapp.data.repository.EventPoolRepository
 import com.yuncun.noteapp.data.repository.RoomIdeaRepository
 import com.yuncun.noteapp.data.repository.RoomEventPoolRepository
 import com.yuncun.noteapp.data.repository.RoomScheduleRepository
+import com.yuncun.noteapp.data.repository.RoomTimeRecordRepository
 import com.yuncun.noteapp.data.repository.ScheduleRepository
+import com.yuncun.noteapp.data.repository.TimeRecordRepository
 import com.yuncun.noteapp.reminder.AndroidReminderAlarmGateway
 import com.yuncun.noteapp.reminder.AndroidReminderNotificationGateway
 import com.yuncun.noteapp.reminder.AndroidReminderPermissionReader
@@ -46,6 +48,9 @@ class NoteApp : Application() {
     lateinit var eventPoolRepository: EventPoolRepository
         private set
 
+    lateinit var timeRecordRepository: TimeRecordRepository
+        private set
+
     lateinit var reminderCoordinator: ReminderCoordinator
         private set
 
@@ -59,6 +64,7 @@ class NoteApp : Application() {
         preferencesRepository = AppPreferencesRepository(appPreferencesDataStore)
         ideaRepository = RoomIdeaRepository(database.ideaDao())
         eventPoolRepository = RoomEventPoolRepository(database.eventPoolItemDao())
+        timeRecordRepository = RoomTimeRecordRepository(database.timeRecordDao())
         scheduleRepository = RoomScheduleRepository(
             database.academicTermDao(),
             database.scheduleTaskDao(),

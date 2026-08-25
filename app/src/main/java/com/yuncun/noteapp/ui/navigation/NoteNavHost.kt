@@ -36,6 +36,7 @@ import com.yuncun.noteapp.NoteApp
 import com.yuncun.noteapp.ui.idea.IdeaViewModel
 import com.yuncun.noteapp.ui.pomodoro.PomodoroViewModel
 import com.yuncun.noteapp.ui.schedule.ScheduleViewModel
+import com.yuncun.noteapp.ui.statistics.StatisticsViewModel
 import com.yuncun.noteapp.ui.screens.IdeaEditScreen
 import com.yuncun.noteapp.ui.screens.IdeaScreen
 import com.yuncun.noteapp.ui.screens.IdeaTrashScreen
@@ -70,6 +71,12 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
     }
     val pomodoroViewModel: PomodoroViewModel = viewModel(factory = pomodoroFactory)
     val pomodoroState by pomodoroViewModel.uiState.collectAsState()
+    val statisticsFactory = remember(application) {
+        StatisticsViewModel.Factory(application.timeRecordRepository)
+    }
+    val statisticsViewModel: StatisticsViewModel = viewModel(factory = statisticsFactory)
+    val statisticsState by statisticsViewModel.uiState.collectAsState()
+    val timeRecordDraft by statisticsViewModel.draft.collectAsState()
     val reminderPermissions by application.reminderCoordinator.permissionState.collectAsState()
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -99,6 +106,12 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
         pomodoroState.feedback?.let { message ->
             snackbarHostState.showSnackbar(message)
             pomodoroViewModel.consumeFeedback()
+        }
+    }
+    LaunchedEffect(statisticsState.feedback) {
+        statisticsState.feedback?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            statisticsViewModel.consumeFeedback()
         }
     }
 
@@ -230,7 +243,27 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
                 )
             }
             composable(Screen.Statistics.route) {
-                StatisticsScreen()
+                StatisticsScreen(
+                    state = statisticsState,
+                    draft = timeRecordDraft,
+                    onSelectPeriod = statisticsViewModel::selectPeriod,
+                    onSelectRanking = statisticsViewModel::selectRanking,
+                    onPreviousPeriod = statisticsViewModel::previousPeriod,
+                    onNextPeriod = statisticsViewModel::nextPeriod,
+                    onCurrentPeriod = statisticsViewModel::currentPeriod,
+                    onRetry = statisticsViewModel::refresh,
+                    onAddRecord = statisticsViewModel::prepareNewRecord,
+                    onEditRecord = statisticsViewModel::prepareEditRecord,
+                    onDeleteRecord = statisticsViewModel::deleteRecord,
+                    onUpdateTitle = statisticsViewModel::updateTitle,
+                    onUpdateCategory = statisticsViewModel::updateCategory,
+                    onUpdateStartDate = statisticsViewModel::updateStartDate,
+                    onUpdateStartTime = statisticsViewModel::updateStartTime,
+                    onUpdateEndDate = statisticsViewModel::updateEndDate,
+                    onUpdateEndTime = statisticsViewModel::updateEndTime,
+                    onSaveDraft = statisticsViewModel::saveDraft,
+                    onDismissEditor = statisticsViewModel::dismissEditor
+                )
             }
             composable(Screen.Settings.route) {
                 SettingsScreen(

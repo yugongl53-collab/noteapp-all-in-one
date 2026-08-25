@@ -17,6 +17,7 @@ import com.yuncun.noteapp.domain.model.ScheduleType
 import com.yuncun.noteapp.domain.model.TermSeason
 import com.yuncun.noteapp.data.repository.AcademicTermInput
 import com.yuncun.noteapp.data.repository.RoomScheduleRepository
+import com.yuncun.noteapp.data.repository.RoomTimeRecordRepository
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -162,6 +163,38 @@ class NoteDatabaseInstrumentedTest {
         assertTrue(overlap.isFailure)
         assertEquals("first", selfEdit)
         assertEquals(2, database.timeRecordDao().getAll().size)
+    }
+
+    @Test
+    fun timeRecordRepository_normalizesEditsAndPermanentlyDeletes() = runBlocking {
+        val repository = RoomTimeRecordRepository(database.timeRecordDao()) { "record" }
+        val createdAt = Instant.parse("2026-08-25T00:00:00Z")
+        repository.save(
+            id = null,
+            title = "  阅读  ",
+            category = EventCategory.STUDY,
+            startAt = Instant.parse("2026-08-25T01:00:45Z"),
+            endAt = Instant.parse("2026-08-25T02:00:50Z"),
+            now = createdAt
+        )
+
+        val created = repository.load().single()
+        assertEquals("阅读", created.title)
+        assertEquals(Instant.parse("2026-08-25T01:00:00Z"), created.startAt)
+        repository.save(
+            id = created.id,
+            title = "写作",
+            category = EventCategory.WORK,
+            startAt = created.startAt,
+            endAt = created.endAt,
+            now = createdAt.plusSeconds(60)
+        )
+
+        val edited = repository.load().single()
+        assertEquals(createdAt, edited.createdAt)
+        assertEquals("写作", edited.title)
+        repository.delete(edited.id)
+        assertTrue(repository.load().isEmpty())
     }
 
     @Test
