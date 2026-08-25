@@ -7,7 +7,11 @@ import com.yuncun.noteapp.data.repository.ScheduleRepository
 import com.yuncun.noteapp.data.repository.ScheduleSnapshot
 import com.yuncun.noteapp.data.repository.ScheduleTaskInput
 import com.yuncun.noteapp.domain.model.EventCategory
+import com.yuncun.noteapp.domain.model.ReminderCandidate
 import com.yuncun.noteapp.domain.model.ScheduleType
+import com.yuncun.noteapp.reminder.ReminderCoordinator
+import com.yuncun.noteapp.reminder.ReminderPermissionState
+import com.yuncun.noteapp.reminder.ReminderSyncResult
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -15,6 +19,8 @@ import java.time.LocalTime
 import java.time.ZoneId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -76,8 +82,45 @@ class ScheduleViewModelTest {
         assertEquals("普通事件已保存", viewModel.uiState.value.feedback)
     }
 
-    private fun viewModel(repository: ScheduleRepository) = ScheduleViewModel(
+    @Test
+    fun successfulSave_rebuildsRemindersFromPersistedSnapshot() = runTest(dispatcher) {
+        val repository = FakeScheduleRepository(mutableListOf())
+        val reminders = FakeReminderCoordinator()
+        val viewModel = viewModel(repository, reminders)
+        advanceUntilIdle()
+
+        viewModel.saveTask(null, input("复盘", LocalTime.of(11, 0)))
+        advanceUntilIdle()
+
+        assertEquals(1, reminders.synchronizeCount)
+        assertEquals("普通事件已保存", viewModel.uiState.value.feedback)
+    }
+
+    @Test
+    fun reminderRebuildFailure_keepsSavedDataAndReportsSpecificFailure() = runTest(dispatcher) {
+        val repository = FakeScheduleRepository(mutableListOf())
+        val reminders = FakeReminderCoordinator(
+            result = ReminderSyncResult(
+                permissions = ReminderPermissionState(true, true),
+                errorMessage = "系统拒绝精确闹钟"
+            )
+        )
+        val viewModel = viewModel(repository, reminders)
+        advanceUntilIdle()
+
+        viewModel.saveTask(null, input("复盘", LocalTime.of(11, 0)))
+        advanceUntilIdle()
+
+        assertEquals(1, repository.tasks.size)
+        assertEquals("普通事件已保存，但提醒未生效：系统拒绝精确闹钟", viewModel.uiState.value.feedback)
+    }
+
+    private fun viewModel(
+        repository: ScheduleRepository,
+        reminders: ReminderCoordinator = FakeReminderCoordinator()
+    ) = ScheduleViewModel(
         repository = repository,
+        reminderCoordinator = reminders,
         clock = { now },
         zoneId = ZoneId.of("Asia/Shanghai"),
         today = { LocalDate.parse("2026-08-25") }
@@ -149,5 +192,22 @@ class ScheduleViewModelTest {
 
         override suspend fun saveCourse(id: String?, input: CourseScheduleInput, now: Instant) = error("测试未使用")
         override suspend fun deleteCourse(id: String) = Unit
+    }
+
+    private class FakeReminderCoordinator(
+        private val result: ReminderSyncResult = ReminderSyncResult(ReminderPermissionState(true, true))
+    ) : ReminderCoordinator {
+        private val permissions = MutableStateFlow(result.permissions)
+        override val permissionState: StateFlow<ReminderPermissionState> = permissions
+        var synchronizeCount = 0
+
+        override fun refreshPermissionState() = Unit
+
+        override suspend fun synchronize(): ReminderSyncResult {
+            synchronizeCount += 1
+            return result
+        }
+
+        override suspend fun handleTriggered(candidate: ReminderCandidate) = Unit
     }
 }
