@@ -115,6 +115,45 @@ class ScheduleViewModelTest {
         assertEquals("普通事件已保存，但提醒未生效：系统拒绝精确闹钟", viewModel.uiState.value.feedback)
     }
 
+    @Test
+    fun reminderEnabledSave_withoutPermissions_reportsConfiguredButInactive() = runTest(dispatcher) {
+        val repository = FakeScheduleRepository(mutableListOf())
+        val reminders = FakeReminderCoordinator(
+            result = ReminderSyncResult(ReminderPermissionState(false, false))
+        )
+        val viewModel = viewModel(repository, reminders)
+        advanceUntilIdle()
+
+        viewModel.saveTask(null, input("复盘", LocalTime.of(11, 0)))
+        advanceUntilIdle()
+
+        assertEquals(
+            "普通事件已保存；提醒已配置但未生效：缺少通知权限、“闹钟和提醒”权限",
+            viewModel.uiState.value.feedback
+        )
+    }
+
+    @Test
+    fun reminderDisabledSave_withoutPermissions_doesNotClaimReminderConfigured() = runTest(dispatcher) {
+        val repository = FakeScheduleRepository(mutableListOf())
+        val reminders = FakeReminderCoordinator(
+            result = ReminderSyncResult(ReminderPermissionState(false, false))
+        )
+        val viewModel = viewModel(repository, reminders)
+        advanceUntilIdle()
+
+        viewModel.saveTask(
+            null,
+            input("复盘", LocalTime.of(11, 0)).copy(
+                reminderEnabled = false,
+                reminderAdvanceMinutes = null
+            )
+        )
+        advanceUntilIdle()
+
+        assertEquals("普通事件已保存", viewModel.uiState.value.feedback)
+    }
+
     private fun viewModel(
         repository: ScheduleRepository,
         reminders: ReminderCoordinator = FakeReminderCoordinator()
