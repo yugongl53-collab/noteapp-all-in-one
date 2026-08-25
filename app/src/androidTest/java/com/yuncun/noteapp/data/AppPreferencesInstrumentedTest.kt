@@ -12,8 +12,9 @@ import java.io.File
 import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -47,7 +48,8 @@ class AppPreferencesInstrumentedTest {
         )
         repository.updateSettings(AppSettings(30, 10))
         repository.savePomodoroSession(session)
-        scope.cancel()
+        // 等待旧 DataStore 的协程完全结束，模拟进程重建时文件锁已释放。
+        scope.coroutineContext[Job]?.cancelAndJoin()
 
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         repository = AppPreferencesRepository(
@@ -57,7 +59,7 @@ class AppPreferencesInstrumentedTest {
         assertEquals(session, repository.pomodoroSession.first())
         repository.clearPomodoroSession()
         assertNull(repository.pomodoroSession.first())
-        scope.cancel()
+        scope.coroutineContext[Job]?.cancelAndJoin()
         file.delete()
     }
 }

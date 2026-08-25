@@ -87,7 +87,8 @@ class NoteDatabaseInstrumentedTest {
     @Test
     fun courseScheduleDao_rejectsDanglingTermReference() = runBlocking {
         val failure = runCatching {
-            database.courseScheduleDao().save(course(Instant.parse("2026-08-25T00:00:00Z")))
+            // 绕过事务保存入口直接触发 SQLite 外键，证明约束不只存在于 Kotlin 校验中。
+            database.courseScheduleDao().insertInternal(course(Instant.parse("2026-08-25T00:00:00Z")))
         }
         assertTrue(failure.isFailure)
         assertTrue(database.courseScheduleDao().getAll().isEmpty())
