@@ -153,8 +153,8 @@ class DefaultReminderCoordinator(
             refreshPermissionState()
             val current = registry.read()
             val delivered = current.deliveredIds.toMutableSet()
-            // 闹钟触发瞬间若通知权限已被撤销，不标记送达；恢复权限后仍可在开始前即时补发。
-            if (_permissionState.value.notificationGranted) {
+            // 权限撤销或系统延迟到事件开始后都不补发；后续同步仍会续订循环规则。
+            if (_permissionState.value.notificationGranted && clock() < candidate.startAt) {
                 notificationGateway.show(candidate)
                 delivered += candidate.id
             }
