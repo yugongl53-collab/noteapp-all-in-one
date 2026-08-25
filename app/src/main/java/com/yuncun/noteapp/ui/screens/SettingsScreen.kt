@@ -24,10 +24,10 @@ import com.yuncun.noteapp.reminder.ReminderPermissionState
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    modifier: Modifier = Modifier,
     reminderPermissions: ReminderPermissionState = ReminderPermissionState(),
     onRequestNotificationPermission: () -> Unit = {},
-    onOpenExactAlarmSettings: () -> Unit = {},
-    modifier: Modifier = Modifier
+    onOpenExactAlarmSettings: () -> Unit = {}
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),

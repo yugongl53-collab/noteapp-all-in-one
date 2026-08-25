@@ -28,8 +28,19 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
 /** 开机、系统时间或时区变化后按 Room 当前事实重建全部下一实例。 */
 class ReminderRescheduleReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        // 只接受清单声明的系统广播，忽略被直接构造的其他 action。
+        if (intent.action !in supportedActions) return
         val pendingResult = goAsync()
         val application = context.applicationContext as NoteApp
         application.synchronizeReminders { pendingResult.finish() }
+    }
+
+    private companion object {
+        val supportedActions = setOf(
+            Intent.ACTION_BOOT_COMPLETED,
+            Intent.ACTION_TIME_CHANGED,
+            Intent.ACTION_TIMEZONE_CHANGED,
+            Intent.ACTION_MY_PACKAGE_REPLACED
+        )
     }
 }

@@ -82,9 +82,9 @@ fun ScheduleScreen(
     onDeleteCourse: (String) -> Unit,
     onConfirmOverlap: () -> Unit,
     onCancelOverlap: () -> Unit,
+    modifier: Modifier = Modifier,
     reminderPermissions: ReminderPermissionState = ReminderPermissionState(true, true),
-    onOpenReminderSettings: () -> Unit = {},
-    modifier: Modifier = Modifier
+    onOpenReminderSettings: () -> Unit = {}
 ) {
     var manager by remember { mutableStateOf<ScheduleManager?>(null) }
     var editingTerm by remember { mutableStateOf<AcademicTermEntity?>(null) }
