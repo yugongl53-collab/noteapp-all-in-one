@@ -1,10 +1,13 @@
 package com.yuncun.noteapp.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -22,8 +25,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.yuncun.noteapp.R
 import com.yuncun.noteapp.reminder.ReminderPermissionState
 import com.yuncun.noteapp.ui.backup.BackupUiState
 
@@ -64,6 +70,32 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // 品牌信息与官方 Logo 展示
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_app_logo),
+                        contentDescription = "一站笔记 Logo",
+                        modifier = Modifier.size(56.dp)
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "一站笔记",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                        Text(
+                            text = "一站式个人效率工具 · 灵感 · 日程 · 专注 · 统计",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
             Text("提醒权限", style = MaterialTheme.typography.headlineSmall)
             Text(
                 "番茄钟阶段提醒需要通知权限；课程和普通事件还需要“闹钟和提醒”权限。权限不足不会阻止保存或计时。",

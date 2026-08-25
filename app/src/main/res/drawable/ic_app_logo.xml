@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 官方品牌 Logo 完整矢量图（包含 Squircle 渐变背景与灵感图腾），用于应用内关于信息与品牌展示 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="128dp"
+    android:height="128dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- 品牌 Squircle 圆角渐变背景 -->
+    <path
+        android:pathData="M144,32 L368,32 A112,112 0 0,1 480,144 L480,368 A112,112 0 0,1 368,480 L144,480 A112,112 0 0,1 32,368 L32,144 A112,112 0 0,1 144,32 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="32"
+                android:startY="32"
+                android:endX="480"
+                android:endY="480"
+                android:type="linear">
+                <item android:color="#FF312E81" android:offset="0.0" />
+                <item android:color="#FF4338CA" android:offset="0.5" />
+                <item android:color="#FF0F766E" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 内边缘微光轮廓 -->
+    <path
+        android:pathData="M144,33 L368,33 A111,111 0 0,1 479,144 L479,368 A111,111 0 0,1 368,479 L144,479 A111,111 0 0,1 33,368 L33,144 A111,111 0 0,1 144,33 Z"
+        android:strokeWidth="2"
+        android:strokeColor="#26FFFFFF" />
+
+    <!-- 品牌 N 字母与灵感图腾 -->
+    <group
+        android:translateX="64"
+        android:translateY="64">
+        <!-- N 字母左侧竖线 -->
+        <path
+            android:pathData="M72,288 L72,120"
+            android:strokeWidth="38"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineCap="round" />
+
+        <!-- N 字母对角能量跃升折线 -->
+        <path
+            android:pathData="M72,120 L208,264"
+            android:strokeWidth="38"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round">
+            <aapt:attr name="android:strokeColor">
+                <gradient
+                    android:startX="72"
+                    android:startY="120"
+                    android:endX="208"
+                    android:endY="264"
+                    android:type="linear">
+                    <item android:color="#FFA5B4FC" android:offset="0.0" />
+                    <item android:color="#FFFFFFFF" android:offset="0.5" />
+                    <item android:color="#FF67E8F9" android:offset="1.0" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- N 字母右侧竖线 -->
+        <path
+            android:pathData="M208,264 L208,96"
+            android:strokeWidth="38"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineCap="round" />
+
+        <!-- 灵感火花 / 笔尖焦点 -->
+        <path
+            android:pathData="M256,116 A24,24 0 1,0 304,116 A24,24 0 1,0 256,116 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:startX="256"
+                    android:startY="92"
+                    android:endX="304"
+                    android:endY="140"
+                    android:type="linear">
+                    <item android:color="#FFFDE047" android:offset="0.0" />
+                    <item android:color="#FFF97316" android:offset="1.0" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- 提笔书写光笔线 -->
+        <path
+            android:pathData="M280,164 L280,288"
+            android:strokeWidth="34"
+            android:strokeColor="#FF5EEAD4"
+            android:strokeLineCap="round" />
+    </group>
+</vector>

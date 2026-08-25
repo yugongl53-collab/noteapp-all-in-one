@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 13+ (API 33+) Material You 主题图标单色前景图层 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <group
+        android:translateX="72"
+        android:translateY="56">
+        <!-- N 字母左侧竖线 -->
+        <path
+            android:pathData="M72,288 L72,120"
+            android:strokeWidth="38"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineCap="round" />
+
+        <!-- N 字母对角能量跃升折线 -->
+        <path
+            android:pathData="M72,120 L208,264"
+            android:strokeWidth="38"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+
+        <!-- N 字母右侧竖线 -->
+        <path
+            android:pathData="M208,264 L208,96"
+            android:strokeWidth="38"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineCap="round" />
+
+        <!-- 灵感火花 / 笔尖焦点 -->
+        <path
+            android:pathData="M256,116 A24,24 0 1,0 304,116 A24,24 0 1,0 256,116 Z"
+            android:fillColor="#FFFFFFFF" />
+
+        <!-- 提笔书写光笔线 -->
+        <path
+            android:pathData="M280,164 L280,288"
+            android:strokeWidth="34"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineCap="round" />
+    </group>
+</vector>
