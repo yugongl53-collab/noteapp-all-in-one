@@ -87,7 +87,7 @@ class DefaultReminderCoordinatorTest {
             notificationGateway = FakeNotificationGateway(),
             registry = FakeReminderRegistry(),
             clock = { now },
-            zoneId = zoneId
+            zoneIdProvider = { zoneId }
         )
         coordinator.synchronize()
         val oldId = alarmGateway.scheduledCandidates.single().id
@@ -111,7 +111,7 @@ class DefaultReminderCoordinatorTest {
             notificationGateway = FakeNotificationGateway(),
             registry = FakeReminderRegistry(),
             clock = { currentNow },
-            zoneId = zoneId
+            zoneIdProvider = { zoneId }
         )
         coordinator.synchronize()
         val triggered = alarmGateway.scheduledCandidates.single()
@@ -130,7 +130,7 @@ class DefaultReminderCoordinatorTest {
         var currentZone = ZoneId.of("Asia/Shanghai")
         val alarmGateway = FakeAlarmGateway()
         val coordinator = DefaultReminderCoordinator(
-            repository = FakeScheduleRepository(mutableListOf(task("event", LocalTime.of(11, 0)))),
+            repository = FakeScheduleRepository(mutableListOf(task("event", LocalTime.of(12, 0)))),
             permissionReader = FakePermissionReader(ReminderPermissionState(true, true)),
             alarmGateway = alarmGateway,
             notificationGateway = FakeNotificationGateway(),
@@ -160,7 +160,7 @@ class DefaultReminderCoordinatorTest {
         notificationGateway = notifications,
         registry = registry,
         clock = { now },
-        zoneId = zoneId
+        zoneIdProvider = { zoneId }
     )
 
     private fun task(id: String, startTime: LocalTime) = ScheduleTaskEntity(

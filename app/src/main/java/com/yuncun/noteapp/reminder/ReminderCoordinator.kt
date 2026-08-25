@@ -76,7 +76,7 @@ class DefaultReminderCoordinator(
     private val notificationGateway: ReminderNotificationGateway,
     private val registry: ReminderRegistry,
     private val clock: () -> Instant = Instant::now,
-    private val zoneId: ZoneId = ZoneId.systemDefault()
+    private val zoneIdProvider: () -> ZoneId = ZoneId::systemDefault
 ) : ReminderCoordinator {
     private val mutex = Mutex()
     private val _permissionState = MutableStateFlow(permissionReader.read())
@@ -178,7 +178,7 @@ class DefaultReminderCoordinator(
             terms = snapshot.terms.map { it.toPeriod() },
             configurations = configurations,
             now = now,
-            zoneId = zoneId,
+            zoneId = zoneIdProvider(),
             excludedIds = excludedIds
         )
     }
