@@ -166,15 +166,25 @@ class ScheduleViewModel(
         _uiState.update { derive(it.copy(selectedWeek = AcademicCalendarRules.weekStart(date))) }
     }
 
-    private fun persistTask(id: String?, input: ScheduleTaskInput) = runOperation("普通事件已保存") {
+    private fun persistTask(id: String?, input: ScheduleTaskInput) = runOperation(
+        successMessage = "普通事件已保存",
+        warnIfPermissionMissing = input.isEnabled && input.reminderEnabled
+    ) {
         repository.saveTask(id, input, clock())
     }
 
-    private fun persistCourse(id: String?, input: CourseScheduleInput) = runOperation("课程已保存") {
+    private fun persistCourse(id: String?, input: CourseScheduleInput) = runOperation(
+        successMessage = "课程已保存",
+        warnIfPermissionMissing = input.reminderEnabled
+    ) {
         repository.saveCourse(id, input, clock())
     }
 
-    private fun runOperation(successMessage: String, action: suspend () -> Unit) {
+    private fun runOperation(
+        successMessage: String,
+        warnIfPermissionMissing: Boolean = false,
+        action: suspend () -> Unit
+    ) {
         if (_uiState.value.operationInProgress) return
         _uiState.update { it.copy(operationInProgress = true) }
         viewModelScope.launch {
@@ -185,7 +195,7 @@ class ScheduleViewModel(
             }.onSuccess { (snapshot, reminderResult) ->
                 applySnapshot(
                     snapshot,
-                    reminderFeedback(successMessage, reminderResult),
+                    reminderFeedback(successMessage, reminderResult, warnIfPermissionMissing),
                     completed = true
                 )
             }.onFailure { error ->
@@ -238,9 +248,13 @@ class ScheduleViewModel(
         }
     }
 
-    private fun reminderFeedback(successMessage: String, result: ReminderSyncResult): String = when {
+    private fun reminderFeedback(
+        successMessage: String,
+        result: ReminderSyncResult,
+        warnIfPermissionMissing: Boolean
+    ): String = when {
         result.errorMessage != null -> "$successMessage，但提醒未生效：${result.errorMessage}"
-        !result.permissions.isEffective ->
+        warnIfPermissionMissing && !result.permissions.isEffective ->
             "$successMessage；提醒已配置但未生效：缺少${result.permissions.missingReason()}"
         else -> successMessage
     }
