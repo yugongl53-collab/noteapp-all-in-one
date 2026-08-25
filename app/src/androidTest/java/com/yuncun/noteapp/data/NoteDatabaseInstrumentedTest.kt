@@ -66,6 +66,35 @@ class NoteDatabaseInstrumentedTest {
     }
 
     @Test
+    fun ideaDao_movesRestoresAndPermanentlyDeletesIdeas() = runBlocking {
+        val now = Instant.parse("2026-08-25T08:00:00Z")
+        database.ideaDao().save(IdeaEntity("idea", "内容", emptyList(), now, now, null))
+
+        assertEquals(1, database.ideaDao().moveToTrash("idea", now.plusSeconds(60)))
+        assertTrue(database.ideaDao().getActive().isEmpty())
+        assertEquals(listOf("idea"), database.ideaDao().getDeleted().map { it.id })
+
+        assertEquals(1, database.ideaDao().restore("idea"))
+        assertEquals(listOf("idea"), database.ideaDao().getActive().map { it.id })
+        database.ideaDao().moveToTrash("idea", now.plusSeconds(120))
+        assertEquals(1, database.ideaDao().deleteById("idea"))
+        assertTrue(database.ideaDao().getAll().isEmpty())
+    }
+
+    @Test
+    fun ideaDao_cleansOnlyIdeasAtOrBeyondThirtyDayBoundary() = runBlocking {
+        val now = Instant.parse("2026-08-31T08:00:00Z")
+        val boundary = now.minusSeconds(30L * 24 * 60 * 60)
+        database.ideaDao().save(IdeaEntity("expired", "到期", emptyList(), boundary, boundary, boundary))
+        database.ideaDao().save(
+            IdeaEntity("retained", "未到期", emptyList(), boundary.plusSeconds(1), boundary.plusSeconds(1), boundary.plusSeconds(1))
+        )
+
+        assertEquals(1, database.ideaDao().deleteExpired(boundary))
+        assertEquals(listOf("retained"), database.ideaDao().getDeleted().map { it.id })
+    }
+
+    @Test
     fun academicTermDao_rejectsDuplicateNameAndOverlappingRangeWithoutPartialWrite() = runBlocking {
         val now = Instant.parse("2026-08-25T00:00:00Z")
         database.academicTermDao().save(term("first", "2026-09-01", "2027-01-15", now))
