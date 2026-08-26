@@ -27,7 +27,7 @@ class M8NavigationInstrumentedTest {
 
         // 切换到「工具箱」
         composeRule.onNodeWithText("工具箱").performClick()
-        composeRule.onNodeWithText("事件池与抽奖").assertIsDisplayed()
+        composeRule.onNodeWithText("幸运大转盘").assertIsDisplayed()
         composeRule.onNodeWithText("番茄钟").assertIsDisplayed()
 
         // 切换到「设置」
