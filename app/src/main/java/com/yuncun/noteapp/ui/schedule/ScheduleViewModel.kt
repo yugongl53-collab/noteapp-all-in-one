@@ -44,7 +44,6 @@ data class ScheduleUiState(
     val instances: List<ScheduleInstance> = emptyList(),
     val eventStream: List<EventStreamItem> = emptyList(),
     val currentPeriodLabel: String = "未设置学期",
-    val weekLabels: List<String> = emptyList(),
     val overlappingIds: Set<String> = emptySet(),
     val taskNameSuggestions: List<String> = emptyList(),
     val courseNameSuggestions: List<String> = emptyList(),
@@ -239,7 +238,6 @@ class ScheduleViewModel(
             instances = instances,
             eventStream = ScheduleViewRules.eventStream(instances, clock()),
             currentPeriodLabel = AcademicCalendarRules.currentPeriodLabel(today(), terms),
-            weekLabels = AcademicCalendarRules.labelsForWeek(state.selectedWeek, terms),
             overlappingIds = ScheduleViewRules.overlappingIds(instances),
             taskNameSuggestions = ScheduleViewRules.distinctRecentNames(state.tasks.map { it.title to it.updatedAt }),
             courseNameSuggestions = ScheduleViewRules.distinctRecentNames(state.courses.map { it.courseName to it.updatedAt })
