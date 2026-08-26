@@ -144,5 +144,6 @@ internal data class TimeRecordDto(
 @Serializable
 internal data class AppSettingsDto(
     val lastFocusMinutes: Int,
-    val lastRestMinutes: Int
+    val lastRestMinutes: Int,
+    val themeMode: String = "system"
 )

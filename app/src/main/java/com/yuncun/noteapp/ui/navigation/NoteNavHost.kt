@@ -23,6 +23,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -43,6 +44,7 @@ import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.yuncun.noteapp.ui.screens.IdeaEditScreen
 import com.yuncun.noteapp.ui.screens.IdeaScreen
@@ -308,7 +310,17 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
                     )
                 }
                 composable(Screen.Settings.route) {
+                    val appSettings by application.preferencesRepository.settings.collectAsState(
+                        initial = com.yuncun.noteapp.domain.model.AppSettings()
+                    )
+                    val coroutineScope = rememberCoroutineScope()
                     SettingsScreen(
+                        currentThemeMode = appSettings.themeMode,
+                        onThemeModeChange = { mode ->
+                            coroutineScope.launch {
+                                application.preferencesRepository.setThemeMode(mode)
+                            }
+                        },
                         reminderPermissions = reminderPermissions,
                         backupState = backupState,
                         onRequestNotificationPermission = {
