@@ -63,15 +63,15 @@ git status --short
 ${ANDROID_SDK_ROOT}/build-tools/<BUILD_TOOLS_VERSION>/apksigner sign \
   --ks <KEYSTORE_PATH> \
   --ks-key-alias <KEY_ALIAS> \
-  --out <OUTPUT_PATH>/NoteApp-1.0.0.apk \
+  --out <OUTPUT_PATH>/NoteApp-1.1.0.apk \
   app/build/outputs/apk/release/app-release-unsigned.apk
 
 ${ANDROID_SDK_ROOT}/build-tools/<BUILD_TOOLS_VERSION>/apksigner verify --verbose --print-certs \
-  <OUTPUT_PATH>/NoteApp-1.0.0.apk
-sha256sum <OUTPUT_PATH>/NoteApp-1.0.0.apk
+  <OUTPUT_PATH>/NoteApp-1.1.0.apk
+sha256sum <OUTPUT_PATH>/NoteApp-1.1.0.apk
 ```
 
-预期 `apksigner verify` 显示 `Verifies` 且至少存在一个签名者。交付记录必须保存 `versionName = 1.0.0`、`versionCode = 1`、SHA-256、签名证书摘要、验证设备和安装冒烟结果；APK 放在用户指定的仓库外目录，不提交 Git。
+预期 `apksigner verify` 显示 `Verifies` 且至少存在一个签名者。交付记录必须保存 `versionName = 1.1.0`、`versionCode = 2`、SHA-256、签名证书摘要、验证设备和安装冒烟结果；APK 放在用户指定的仓库外目录，不提交 Git。
 
 ## 7. 常见失败处理
 
