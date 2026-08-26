@@ -50,6 +50,63 @@ class ScheduleScreensInstrumentedTest {
     }
 
     @Test
+    fun timetableWithMultipleInstances_rendersCardsAndOpensDetailDialog() {
+        val date = LocalDate.parse("2026-08-25")
+        val instances = (1..6).map { i ->
+            ScheduleInstance(
+                sourceId = "task-$i",
+                source = ScheduleSource.TASK,
+                title = "事件 $i",
+                category = EventCategory.WORK,
+                startAt = Instant.parse(String.format("2026-08-25T%02d:00:00Z", i + 7)),
+                endAt = Instant.parse(String.format("2026-08-25T%02d:00:00Z", i + 8))
+            )
+        }
+        val tasks = instances.map { inst ->
+            ScheduleTaskEntity(
+                id = inst.sourceId,
+                title = inst.title,
+                category = inst.category,
+                type = ScheduleType.ONE_OFF,
+                weekdays = emptySet(),
+                effectiveFrom = null,
+                date = date,
+                startTime = LocalTime.of(8, 0),
+                endTime = LocalTime.of(9, 0),
+                isEnabled = true,
+                reminderEnabled = false,
+                reminderAdvanceMinutes = null,
+                createdAt = Instant.parse("2026-08-25T00:00:00Z"),
+                updatedAt = Instant.parse("2026-08-25T00:00:00Z")
+            )
+        }
+
+        composeRule.setContent {
+            NoteAppTheme {
+                ScheduleScreen(
+                    state = ScheduleUiState(
+                        isLoading = false,
+                        selectedWeek = LocalDate.parse("2026-08-24"),
+                        viewMode = ScheduleViewMode.TIMETABLE,
+                        instances = instances,
+                        tasks = tasks
+                    ),
+                    onSelectView = {},
+                    onPreviousWeek = {}, onNextWeek = {}, onCurrentWeek = {},
+                    onSaveTerm = { _, _ -> }, onDeleteTerm = {},
+                    onSaveTask = { _, _ -> }, onDeleteTask = {},
+                    onSaveCourse = { _, _ -> }, onDeleteCourse = {},
+                    onConfirmOverlap = {}, onCancelOverlap = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("事件 1").assertIsDisplayed()
+        composeRule.onNodeWithText("事件 1").performClick()
+        composeRule.onNodeWithText("事件详情").assertIsDisplayed()
+    }
+
+    @Test
     fun currentPeriodButton_opensTermSettingsInsteadOfUsingPeerManagementEntry() {
         composeRule.setContent { NoteAppTheme { scheduleScreen(currentPeriodLabel = "2026-2027秋季学期 · 第3周") } }
 

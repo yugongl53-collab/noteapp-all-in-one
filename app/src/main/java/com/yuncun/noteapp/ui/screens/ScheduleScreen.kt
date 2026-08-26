@@ -334,12 +334,15 @@ private fun WeekControls(
     }
 }
 
-/** 七个固定日列允许横向滚动，重叠实例仍以独立卡片完整展示。 */
+/** 七个固定日列允许横向与纵向双向滚动，重叠实例仍以独立卡片完整展示。 */
 @Composable
 private fun Timetable(state: ScheduleUiState, onOpen: (ScheduleInstance) -> Unit) {
     val zoneId = ZoneId.systemDefault()
     Row(
-        modifier = Modifier.fillMaxSize().horizontalScroll(rememberScrollState()),
+        modifier = Modifier
+            .fillMaxSize()
+            .horizontalScroll(rememberScrollState())
+            .verticalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         (0L..6L).forEach { offset ->
