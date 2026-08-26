@@ -5,6 +5,7 @@ import com.yuncun.noteapp.domain.model.ScheduleInstance
 import com.yuncun.noteapp.domain.model.ScheduleSource
 import com.yuncun.noteapp.domain.model.ScheduleRule
 import com.yuncun.noteapp.domain.model.ScheduleType
+import com.yuncun.noteapp.domain.rules.EventStreamItem
 import com.yuncun.noteapp.domain.rules.ScheduleConflictRules
 import com.yuncun.noteapp.domain.rules.ScheduleViewRules
 import java.time.DayOfWeek
@@ -66,6 +67,28 @@ class ScheduleViewRulesTest {
 
         assertTrue(ScheduleConflictRules.tasksConflict(existing, overlapping))
         assertFalse(ScheduleConflictRules.tasksConflict(existing, adjacent))
+    }
+
+    @Test
+    fun chunkEventStream_groupsByDateAndHalfDayBoundary() {
+        val shanghai = java.time.ZoneId.of("Asia/Shanghai")
+        val am1 = EventStreamItem(instance("am1", "上午1", "2026-08-25T01:00:00Z", "2026-08-25T02:00:00Z"), false, false) // 09:00 CST
+        val am2 = EventStreamItem(instance("am2", "上午2", "2026-08-25T03:30:00Z", "2026-08-25T04:30:00Z"), false, false) // 11:30 CST
+        val pm1 = EventStreamItem(instance("pm1", "下午1", "2026-08-25T04:00:00Z", "2026-08-25T05:00:00Z"), false, false) // 12:00 CST
+        val pm2 = EventStreamItem(instance("pm2", "下午2", "2026-08-25T07:00:00Z", "2026-08-25T08:00:00Z"), false, false) // 15:00 CST
+        val nextDayAm = EventStreamItem(instance("nextAm", "次日上午", "2026-08-26T01:00:00Z", "2026-08-26T02:00:00Z"), false, false) // 09:00 CST 次日
+
+        val chunks = ScheduleViewRules.chunkEventStream(listOf(am1, am2, pm1, pm2, nextDayAm), shanghai)
+
+        assertEquals(3, chunks.size)
+        assertEquals(listOf("am1", "am2"), chunks[0].map { it.instance.sourceId })
+        assertEquals(listOf("pm1", "pm2"), chunks[1].map { it.instance.sourceId })
+        assertEquals(listOf("nextAm"), chunks[2].map { it.instance.sourceId })
+    }
+
+    @Test
+    fun chunkEventStream_returnsEmptyForEmptyList() {
+        assertTrue(ScheduleViewRules.chunkEventStream(emptyList()).isEmpty())
     }
 
     private fun instance(id: String, title: String, start: String, end: String) = ScheduleInstance(

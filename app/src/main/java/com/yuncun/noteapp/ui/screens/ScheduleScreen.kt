@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
@@ -49,6 +50,7 @@ import com.yuncun.noteapp.data.repository.ScheduleTaskInput
 import com.yuncun.noteapp.domain.model.ScheduleInstance
 import com.yuncun.noteapp.domain.model.ScheduleSource
 import com.yuncun.noteapp.domain.rules.EventStreamItem
+import com.yuncun.noteapp.domain.rules.ScheduleViewRules
 import com.yuncun.noteapp.reminder.ReminderPermissionState
 import com.yuncun.noteapp.ui.schedule.ScheduleUiState
 import com.yuncun.noteapp.ui.schedule.ScheduleViewMode
@@ -357,23 +359,38 @@ private fun Timetable(state: ScheduleUiState, onOpen: (ScheduleInstance) -> Unit
     }
 }
 
+/** 事件流采用纵向卡片列表，自动按上下午（以 12:00 为界）分块排布并以空白间距自然隔开，无显式文字标签。 */
 @Composable
 private fun EventStream(items: List<EventStreamItem>, onOpen: (ScheduleInstance) -> Unit) {
     if (items.isEmpty()) {
         Text("本周没有接下来的事件", modifier = Modifier.padding(top = 24.dp))
         return
     }
-    Row(
-        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    val chunks = remember(items) { ScheduleViewRules.chunkEventStream(items) }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        items.forEach { item ->
-            val border = if (item.isNext) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
-            Card(onClick = { onOpen(item.instance) }, modifier = Modifier.width(220.dp), border = border) {
-                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    if (item.isOngoing) Text("进行中", color = MaterialTheme.colorScheme.tertiary)
-                    if (item.isNext) Text("下一个事件", color = MaterialTheme.colorScheme.primary)
-                    InstanceText(item.instance, includeDate = true)
+        chunks.forEach { chunk ->
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                chunk.forEach { item ->
+                    val border = if (item.isNext) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
+                    Card(
+                        onClick = { onOpen(item.instance) },
+                        modifier = Modifier.fillMaxWidth(),
+                        border = border
+                    ) {
+                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            if (item.isOngoing) Text("进行中", color = MaterialTheme.colorScheme.tertiary)
+                            if (item.isNext) Text("下一个事件", color = MaterialTheme.colorScheme.primary)
+                            InstanceText(item.instance, includeDate = true)
+                        }
+                    }
                 }
             }
         }

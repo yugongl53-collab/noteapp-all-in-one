@@ -12,6 +12,7 @@ import com.yuncun.noteapp.domain.model.EventCategory
 import com.yuncun.noteapp.domain.model.ScheduleInstance
 import com.yuncun.noteapp.domain.model.ScheduleSource
 import com.yuncun.noteapp.domain.model.ScheduleType
+import com.yuncun.noteapp.domain.rules.EventStreamItem
 import com.yuncun.noteapp.reminder.ReminderPermissionState
 import com.yuncun.noteapp.ui.schedule.ScheduleUiState
 import com.yuncun.noteapp.ui.schedule.ScheduleViewMode
@@ -65,6 +66,78 @@ class ScheduleScreensInstrumentedTest {
         composeRule.onNodeWithText("事件流").performClick()
 
         assertEquals(ScheduleViewMode.EVENT_STREAM, selected)
+    }
+
+    @Test
+    fun eventStream_rendersChunkedInstancesAndOpensDetailDialog() {
+        val morningInstance = ScheduleInstance(
+            sourceId = "task-am",
+            source = ScheduleSource.TASK,
+            title = "上午例会",
+            category = EventCategory.WORK,
+            startAt = Instant.parse("2026-08-25T01:00:00Z"),
+            endAt = Instant.parse("2026-08-25T02:00:00Z")
+        )
+        val afternoonInstance = ScheduleInstance(
+            sourceId = "task-pm",
+            source = ScheduleSource.TASK,
+            title = "下午复盘",
+            category = EventCategory.STUDY,
+            startAt = Instant.parse("2026-08-25T06:00:00Z"),
+            endAt = Instant.parse("2026-08-25T07:00:00Z")
+        )
+        val streamItems = listOf(
+            EventStreamItem(morningInstance, isOngoing = false, isNext = true),
+            EventStreamItem(afternoonInstance, isOngoing = false, isNext = false)
+        )
+        composeRule.setContent {
+            NoteAppTheme {
+                ScheduleScreen(
+                    state = ScheduleUiState(
+                        isLoading = false,
+                        selectedWeek = LocalDate.parse("2026-08-24"),
+                        viewMode = ScheduleViewMode.EVENT_STREAM,
+                        eventStream = streamItems,
+                        tasks = listOf(
+                            ScheduleTaskEntity(
+                                id = "task-am",
+                                title = "上午例会",
+                                category = EventCategory.WORK,
+                                type = ScheduleType.ONE_OFF,
+                                weekdays = emptySet(),
+                                effectiveFrom = null,
+                                date = LocalDate.parse("2026-08-25"),
+                                startTime = LocalTime.of(9, 0),
+                                endTime = LocalTime.of(10, 0),
+                                isEnabled = true,
+                                reminderEnabled = false,
+                                reminderAdvanceMinutes = null,
+                                createdAt = Instant.parse("2026-08-25T00:00:00Z"),
+                                updatedAt = Instant.parse("2026-08-25T00:00:00Z")
+                            )
+                        )
+                    ),
+                    onSelectView = {},
+                    onPreviousWeek = {}, onNextWeek = {}, onCurrentWeek = {},
+                    onSaveTerm = { _, _ -> }, onDeleteTerm = {},
+                    onSaveTask = { _, _ -> }, onDeleteTask = {},
+                    onSaveCourse = { _, _ -> }, onDeleteCourse = {},
+                    onConfirmOverlap = {}, onCancelOverlap = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("上午例会").assertIsDisplayed()
+        composeRule.onNodeWithText("下午复盘").assertIsDisplayed()
+        composeRule.onNodeWithText("下一个事件").assertIsDisplayed()
+
+        // 验证没有显式的“上午”或“下午”文字标题
+        assertEquals(0, composeRule.onAllNodesWithText("上午").fetchSemanticsNodes().size)
+        assertEquals(0, composeRule.onAllNodesWithText("下午").fetchSemanticsNodes().size)
+
+        // 点击卡片打开详情弹窗
+        composeRule.onNodeWithText("上午例会").performClick()
+        composeRule.onNodeWithText("事件详情").assertIsDisplayed()
     }
 
     @Test
