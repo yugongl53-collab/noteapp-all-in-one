@@ -1,5 +1,6 @@
 package com.yuncun.noteapp.ui.schedule
 
+import com.yuncun.noteapp.data.local.entity.AcademicTermEntity
 import com.yuncun.noteapp.data.local.entity.ScheduleTaskEntity
 import com.yuncun.noteapp.data.repository.AcademicTermInput
 import com.yuncun.noteapp.data.repository.CourseScheduleInput
@@ -9,6 +10,7 @@ import com.yuncun.noteapp.data.repository.ScheduleTaskInput
 import com.yuncun.noteapp.domain.model.EventCategory
 import com.yuncun.noteapp.domain.model.ReminderCandidate
 import com.yuncun.noteapp.domain.model.ScheduleType
+import com.yuncun.noteapp.domain.model.TermSeason
 import com.yuncun.noteapp.reminder.ReminderCoordinator
 import com.yuncun.noteapp.reminder.ReminderPermissionState
 import com.yuncun.noteapp.reminder.ReminderSyncResult
@@ -60,6 +62,21 @@ class ScheduleViewModelTest {
         assertFalse(state.isLoading)
         assertEquals(listOf("task"), state.instances.map { it.sourceId })
         assertEquals(listOf("周会"), state.taskNameSuggestions)
+    }
+
+    @Test
+    fun initialLoad_derivesCurrentPeriodIndependentlyFromBrowsedWeek() = runTest(dispatcher) {
+        val repository = FakeScheduleRepository(
+            tasks = mutableListOf(),
+            terms = listOf(term())
+        )
+        val viewModel = viewModel(repository)
+        advanceUntilIdle()
+
+        viewModel.previousWeek()
+
+        assertEquals("2026-2027秋季学期 · 第1周", viewModel.uiState.value.currentPeriodLabel)
+        assertEquals(LocalDate.parse("2026-08-17"), viewModel.uiState.value.selectedWeek)
     }
 
     @Test
@@ -196,10 +213,21 @@ class ScheduleViewModelTest {
         updatedAt = now
     )
 
+    private fun term() = AcademicTermEntity(
+        id = "fall",
+        academicYearStart = 2026,
+        season = TermSeason.FALL,
+        startDate = LocalDate.parse("2026-08-24"),
+        endDate = LocalDate.parse("2027-01-15"),
+        createdAt = now,
+        updatedAt = now
+    )
+
     private class FakeScheduleRepository(
-        val tasks: MutableList<ScheduleTaskEntity>
+        val tasks: MutableList<ScheduleTaskEntity>,
+        private val terms: List<AcademicTermEntity> = emptyList()
     ) : ScheduleRepository {
-        override suspend fun load() = ScheduleSnapshot(emptyList(), tasks.toList(), emptyList())
+        override suspend fun load() = ScheduleSnapshot(terms, tasks.toList(), emptyList())
         override suspend fun saveTerm(id: String?, input: AcademicTermInput, now: Instant) = error("测试未使用")
         override suspend fun deleteTerm(id: String) = Unit
 

@@ -139,6 +139,14 @@ fun ScheduleScreen(
             modifier = Modifier.padding(innerPadding).padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            OutlinedButton(
+                onClick = { manager = ScheduleManager.TERMS },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.School, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(state.currentPeriodLabel)
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = state.viewMode == ScheduleViewMode.TIMETABLE,
@@ -195,9 +203,6 @@ fun ScheduleScreen(
                     }
                     OutlinedButton(onClick = { manager = ScheduleManager.COURSES }) {
                         Icon(Icons.AutoMirrored.Filled.MenuBook, null); Text("课程")
-                    }
-                    OutlinedButton(onClick = { manager = ScheduleManager.TERMS }) {
-                        Icon(Icons.Default.School, null); Text("学期")
                     }
                 }
                 val hasConfiguredReminder = state.tasks.any { it.isEnabled && it.reminderEnabled } ||

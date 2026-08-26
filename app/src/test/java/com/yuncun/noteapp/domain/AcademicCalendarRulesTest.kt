@@ -43,6 +43,27 @@ class AcademicCalendarRulesTest {
     }
 
     @Test
+    fun currentPeriodLabel_inTermIncludesNameAndCalculatedWeek() {
+        assertEquals(
+            "2026-2027秋季学期 · 第3周",
+            AcademicCalendarRules.currentPeriodLabel(LocalDate.of(2026, 9, 16), listOf(fall))
+        )
+    }
+
+    @Test
+    fun currentPeriodLabel_outsideTermUsesVacationAndEmptyTermsUseUnsetState() {
+        assertEquals(
+            "寒假中",
+            AcademicCalendarRules.currentPeriodLabel(LocalDate.of(2027, 2, 1), listOf(fall, spring))
+        )
+        assertEquals(
+            "暑假中",
+            AcademicCalendarRules.currentPeriodLabel(LocalDate.of(2026, 8, 25), listOf(fall))
+        )
+        assertEquals("未设置学期", AcademicCalendarRules.currentPeriodLabel(LocalDate.of(2026, 8, 25), emptyList()))
+    }
+
+    @Test
     fun labelsForWeek_keepsBoundaryLabelsInDateOrderWithoutDuplicates() {
         assertEquals(
             listOf("2026-2027秋季学期", "寒假"),
