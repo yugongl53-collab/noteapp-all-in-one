@@ -44,9 +44,6 @@ class IdeaViewModel(
     private val _uiState = MutableStateFlow(IdeaUiState())
     val uiState: StateFlow<IdeaUiState> = _uiState.asStateFlow()
 
-    private val _quickDraft = MutableStateFlow(IdeaDraftState())
-    val quickDraft: StateFlow<IdeaDraftState> = _quickDraft.asStateFlow()
-
     private val _editorDraft = MutableStateFlow(IdeaDraftState())
     val editorDraft: StateFlow<IdeaDraftState> = _editorDraft.asStateFlow()
 
@@ -72,35 +69,6 @@ class IdeaViewModel(
                     _uiState.update {
                         it.copy(isLoading = false, feedback = failureMessage("加载失败", error))
                     }
-                }
-        }
-    }
-
-    fun updateQuickContent(content: String) {
-        _quickDraft.update { it.copy(content = content, contentError = null, isDirty = true) }
-    }
-
-    fun updateQuickTags(tagsInput: String) {
-        _quickDraft.update { it.copy(tagsInput = tagsInput, isDirty = true) }
-    }
-
-    fun saveQuickIdea() {
-        val input = runCatching {
-            IdeaRules.normalize(_quickDraft.value.content, _quickDraft.value.tagsInput)
-        }.getOrElse { error ->
-            _quickDraft.update { it.copy(contentError = error.message ?: "灵感正文不能为空") }
-            return
-        }
-        _quickDraft.update { it.copy(isSaving = true, contentError = null) }
-        viewModelScope.launch {
-            runCatching { repository.create(input.content, input.tags, clock()) }
-                .onSuccess {
-                    _quickDraft.value = IdeaDraftState()
-                    reloadAfterOperation("灵感已保存")
-                }
-                .onFailure { error ->
-                    _quickDraft.update { it.copy(isSaving = false) }
-                    _uiState.update { it.copy(feedback = failureMessage("保存失败，请重试", error)) }
                 }
         }
     }
