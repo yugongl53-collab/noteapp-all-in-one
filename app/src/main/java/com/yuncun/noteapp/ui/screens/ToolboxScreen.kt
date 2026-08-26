@@ -133,55 +133,49 @@ fun ToolboxScreen(
     var deletingItem by remember { mutableStateOf<EventPoolItemEntity?>(null) }
     var confirmFinish by remember { mutableStateOf(false) }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = { Text("工具箱") },
-                navigationIcon = {
-                    if (onBack != null) {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                        }
-                    }
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        if (onBack != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                 }
-            )
+            }
         }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // 模块 1：番茄钟专注模块卡片
-            PomodoroCard(
-                state = state,
-                carriedTitle = carriedTitle,
-                notificationGranted = notificationGranted,
-                onStart = onStart,
-                onPause = onPause,
-                onResume = onResume,
-                onReset = onReset,
-                onRequestFinishEarly = { confirmFinish = true },
-                onStartRest = onStartRest,
-                onClearSession = onClearSession,
-                onExpandFullscreen = { showFullscreenPomodoro = true },
-                onRequestNotificationPermission = onRequestNotificationPermission
-            )
 
-            // 模块 2：事件抽奖决策模块卡片
-            EventDrawCard(
-                state = state,
-                onDraw = onDraw,
-                onCarryToPomodoro = { title ->
-                    carriedTitle = title
-                },
-                onOpenPoolManager = { showPoolManager = true }
-            )
-        }
+        // 模块 1：番茄钟专注模块卡片
+        PomodoroCard(
+            state = state,
+            carriedTitle = carriedTitle,
+            notificationGranted = notificationGranted,
+            onStart = onStart,
+            onPause = onPause,
+            onResume = onResume,
+            onReset = onReset,
+            onRequestFinishEarly = { confirmFinish = true },
+            onStartRest = onStartRest,
+            onClearSession = onClearSession,
+            onExpandFullscreen = { showFullscreenPomodoro = true },
+            onRequestNotificationPermission = onRequestNotificationPermission
+        )
+
+        // 模块 2：事件抽奖决策模块卡片
+        EventDrawCard(
+            state = state,
+            onDraw = onDraw,
+            onCarryToPomodoro = { title ->
+                carriedTitle = title
+            },
+            onOpenPoolManager = { showPoolManager = true }
+        )
     }
 
     // 全屏沉浸番茄钟视图

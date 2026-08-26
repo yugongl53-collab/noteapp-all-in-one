@@ -29,9 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -133,100 +131,98 @@ fun ScheduleScreen(
         }
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        topBar = { TopAppBar(title = { Text("日程") }) }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier.padding(innerPadding).padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+            .padding(top = 12.dp, bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        OutlinedButton(
+            onClick = { manager = ScheduleManager.TERMS },
+            modifier = Modifier.fillMaxWidth()
         ) {
-            OutlinedButton(
-                onClick = { manager = ScheduleManager.TERMS },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.School, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text(state.currentPeriodLabel)
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
-                    selected = state.viewMode == ScheduleViewMode.TIMETABLE,
-                    onClick = { onSelectView(ScheduleViewMode.TIMETABLE) },
-                    label = { Text("课表") }
+            Icon(Icons.Default.School, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text(state.currentPeriodLabel)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = state.viewMode == ScheduleViewMode.TIMETABLE,
+                onClick = { onSelectView(ScheduleViewMode.TIMETABLE) },
+                label = { Text("课表") }
+            )
+            FilterChip(
+                selected = state.viewMode == ScheduleViewMode.EVENT_STREAM,
+                onClick = { onSelectView(ScheduleViewMode.EVENT_STREAM) },
+                label = { Text("事件流") }
+            )
+            FilterChip(
+                selected = state.viewMode == ScheduleViewMode.STATISTICS,
+                onClick = { onSelectView(ScheduleViewMode.STATISTICS) },
+                label = { Text("时间统计") }
+            )
+        }
+        if (state.viewMode == ScheduleViewMode.STATISTICS) {
+            if (statisticsState != null && statisticsDraft != null) {
+                StatisticsScreen(
+                    state = statisticsState,
+                    draft = statisticsDraft,
+                    onSelectPeriod = onSelectPeriod,
+                    onSelectRanking = onSelectRanking,
+                    onPreviousPeriod = onPreviousPeriod,
+                    onNextPeriod = onNextPeriod,
+                    onCurrentPeriod = onCurrentPeriod,
+                    onRetry = onRetryStatistics,
+                    onAddRecord = onAddRecord,
+                    onEditRecord = onEditRecord,
+                    onDeleteRecord = onDeleteRecord,
+                    onUpdateTitle = onUpdateRecordTitle,
+                    onUpdateCategory = onUpdateRecordCategory,
+                    onUpdateStartDate = onUpdateRecordStartDate,
+                    onUpdateStartTime = onUpdateRecordStartTime,
+                    onUpdateEndDate = onUpdateRecordEndDate,
+                    onUpdateEndTime = onUpdateRecordEndTime,
+                    onSaveDraft = onSaveRecordDraft,
+                    onDismissEditor = onDismissRecordEditor
                 )
-                FilterChip(
-                    selected = state.viewMode == ScheduleViewMode.EVENT_STREAM,
-                    onClick = { onSelectView(ScheduleViewMode.EVENT_STREAM) },
-                    label = { Text("事件流") }
-                )
-                FilterChip(
-                    selected = state.viewMode == ScheduleViewMode.STATISTICS,
-                    onClick = { onSelectView(ScheduleViewMode.STATISTICS) },
-                    label = { Text("时间统计") }
-                )
-            }
-            if (state.viewMode == ScheduleViewMode.STATISTICS) {
-                if (statisticsState != null && statisticsDraft != null) {
-                    StatisticsScreen(
-                        state = statisticsState,
-                        draft = statisticsDraft,
-                        onSelectPeriod = onSelectPeriod,
-                        onSelectRanking = onSelectRanking,
-                        onPreviousPeriod = onPreviousPeriod,
-                        onNextPeriod = onNextPeriod,
-                        onCurrentPeriod = onCurrentPeriod,
-                        onRetry = onRetryStatistics,
-                        onAddRecord = onAddRecord,
-                        onEditRecord = onEditRecord,
-                        onDeleteRecord = onDeleteRecord,
-                        onUpdateTitle = onUpdateRecordTitle,
-                        onUpdateCategory = onUpdateRecordCategory,
-                        onUpdateStartDate = onUpdateRecordStartDate,
-                        onUpdateStartTime = onUpdateRecordStartTime,
-                        onUpdateEndDate = onUpdateRecordEndDate,
-                        onUpdateEndTime = onUpdateRecordEndTime,
-                        onSaveDraft = onSaveRecordDraft,
-                        onDismissEditor = onDismissRecordEditor
-                    )
-                } else {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("统计数据加载中…")
-                    }
-                }
             } else {
-                WeekControls(state, onPreviousWeek, onNextWeek, onCurrentWeek)
-                Row(
-                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedButton(onClick = { manager = ScheduleManager.TASKS }) {
-                        Icon(Icons.Default.Event, null); Text("普通事件")
-                    }
-                    OutlinedButton(onClick = { manager = ScheduleManager.COURSES }) {
-                        Icon(Icons.AutoMirrored.Filled.MenuBook, null); Text("课程")
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("统计数据加载中…")
+                }
+            }
+        } else {
+            WeekControls(state, onPreviousWeek, onNextWeek, onCurrentWeek)
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(onClick = { manager = ScheduleManager.TASKS }) {
+                    Icon(Icons.Default.Event, null); Text("普通事件")
+                }
+                OutlinedButton(onClick = { manager = ScheduleManager.COURSES }) {
+                    Icon(Icons.AutoMirrored.Filled.MenuBook, null); Text("课程")
+                }
+            }
+            val hasConfiguredReminder = state.tasks.any { it.isEnabled && it.reminderEnabled } ||
+                state.courses.any { it.reminderEnabled }
+            if (hasConfiguredReminder && !reminderPermissions.isEffective) {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            "提醒已配置但未生效：缺少${reminderPermissions.missingReason()}",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        OutlinedButton(onClick = onOpenReminderSettings) { Text("提醒设置") }
                     }
                 }
-                val hasConfiguredReminder = state.tasks.any { it.isEnabled && it.reminderEnabled } ||
-                    state.courses.any { it.reminderEnabled }
-                if (hasConfiguredReminder && !reminderPermissions.isEffective) {
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(
-                                "提醒已配置但未生效：缺少${reminderPermissions.missingReason()}",
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            OutlinedButton(onClick = onOpenReminderSettings) { Text("提醒设置") }
-                        }
-                    }
+            }
+            when {
+                state.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
                 }
-                when {
-                    state.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                    state.viewMode == ScheduleViewMode.TIMETABLE -> Timetable(state) { selectedInstance = it }
-                    else -> EventStream(state.eventStream) { selectedInstance = it }
-                }
+                state.viewMode == ScheduleViewMode.TIMETABLE -> Timetable(state) { selectedInstance = it }
+                else -> EventStream(state.eventStream) { selectedInstance = it }
             }
         }
     }
