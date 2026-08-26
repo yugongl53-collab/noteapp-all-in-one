@@ -297,6 +297,14 @@ fun ScheduleScreen(
                 }
                 selectedInstance = null
             },
+            onDelete = {
+                if (instance.source == ScheduleSource.TASK) {
+                    onDeleteTask(instance.sourceId)
+                } else {
+                    onDeleteCourse(instance.sourceId)
+                }
+                selectedInstance = null
+            },
             onDismiss = { selectedInstance = null }
         )
     }
