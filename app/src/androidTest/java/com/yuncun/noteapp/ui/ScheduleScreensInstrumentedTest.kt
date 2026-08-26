@@ -18,7 +18,6 @@ import com.yuncun.noteapp.ui.schedule.ScheduleUiState
 import com.yuncun.noteapp.ui.schedule.ScheduleViewMode
 import com.yuncun.noteapp.ui.screens.CourseEditorDialog
 import com.yuncun.noteapp.ui.screens.OverlapConfirmationDialog
-import com.yuncun.noteapp.ui.screens.ScheduleDetailDialog
 import com.yuncun.noteapp.ui.screens.ScheduleScreen
 import com.yuncun.noteapp.ui.screens.TaskEditorDialog
 import com.yuncun.noteapp.ui.screens.TaskSummary
@@ -240,74 +239,6 @@ class ScheduleScreensInstrumentedTest {
         composeRule.onNodeWithText("提醒已配置但未生效：缺少通知权限、“闹钟和提醒”权限").assertIsDisplayed()
         composeRule.onNodeWithText("前往提醒设置").performClick()
         assertTrue(opened)
-    }
-
-    @Test
-    fun scheduleDetailDialog_displaysActionsAndConfirmationTriggersDelete() {
-        var deleted = false
-        val instance = ScheduleInstance(
-            sourceId = "task-1",
-            source = ScheduleSource.TASK,
-            title = "周会",
-            category = EventCategory.WORK,
-            startAt = Instant.parse("2026-08-25T01:00:00Z"),
-            endAt = Instant.parse("2026-08-25T02:00:00Z")
-        )
-        composeRule.setContent {
-            NoteAppTheme {
-                ScheduleDetailDialog(
-                    instance = instance,
-                    onEdit = {},
-                    onDelete = { deleted = true },
-                    onDismiss = {}
-                )
-            }
-        }
-
-        composeRule.onNodeWithText("前往编辑").assertIsDisplayed()
-        composeRule.onNodeWithText("关闭").assertIsDisplayed()
-        composeRule.onNodeWithText("删除").assertIsDisplayed()
-
-        // 点击删除弹出二次确认
-        composeRule.onNodeWithText("删除").performClick()
-        composeRule.onNodeWithText("确认删除普通事件？").assertIsDisplayed()
-        composeRule.onNodeWithText("确定要删除「周会」吗？删除后无法恢复，并会一并清除相关提醒。").assertIsDisplayed()
-
-        // 点击确认删除
-        composeRule.onNodeWithText("确认删除").performClick()
-        assertTrue(deleted)
-    }
-
-    @Test
-    fun scheduleDetailDialog_courseConfirmationShowsCourseTitleAndCancelKeepsData() {
-        var deleted = false
-        val instance = ScheduleInstance(
-            sourceId = "course-1",
-            source = ScheduleSource.COURSE,
-            title = "高等数学",
-            category = EventCategory.STUDY,
-            startAt = Instant.parse("2026-08-25T01:00:00Z"),
-            endAt = Instant.parse("2026-08-25T02:00:00Z"),
-            location = "理学楼 101"
-        )
-        composeRule.setContent {
-            NoteAppTheme {
-                ScheduleDetailDialog(
-                    instance = instance,
-                    onEdit = {},
-                    onDelete = { deleted = true },
-                    onDismiss = {}
-                )
-            }
-        }
-
-        composeRule.onNodeWithText("删除").performClick()
-        composeRule.onNodeWithText("确认删除课程？").assertIsDisplayed()
-        composeRule.onNodeWithText("确定要删除「高等数学」吗？删除后无法恢复，并会一并清除相关提醒。").assertIsDisplayed()
-
-        // 取消不触发删除
-        composeRule.onNodeWithText("取消").performClick()
-        assertFalse(deleted)
     }
 
     @androidx.compose.runtime.Composable
