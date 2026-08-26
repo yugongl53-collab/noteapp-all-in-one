@@ -9,7 +9,7 @@ import androidx.room.Update
 import com.yuncun.noteapp.data.local.EntityValidation
 import com.yuncun.noteapp.data.local.entity.EventPoolItemEntity
 
-/** 事件池 DAO 只允许五类可选性质，并统一名称规范化。 */
+/** 事件池 DAO 统一校验性质、权重与名称，覆盖页面写入和备份整体替换两条路径。 */
 @Dao
 abstract class EventPoolItemDao {
     @Transaction
@@ -17,6 +17,7 @@ abstract class EventPoolItemDao {
         EntityValidation.requireId(entity.id)
         EntityValidation.requireTimestamps(entity.createdAt, entity.updatedAt)
         EntityValidation.requireSelectableCategory(entity.category)
+        require(entity.weight in 1..100) { "事件权重必须在 1 到 100 之间" }
         val normalized = entity.copy(title = EntityValidation.requiredText(entity.title, "事件名称"))
         if (findById(entity.id) == null) insertInternal(normalized) else updateInternal(normalized)
         return entity.id

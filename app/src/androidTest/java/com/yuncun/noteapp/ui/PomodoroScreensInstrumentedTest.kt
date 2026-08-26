@@ -3,6 +3,7 @@ package com.yuncun.noteapp.ui
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.yuncun.noteapp.domain.model.AppSettings
@@ -33,7 +34,7 @@ class PomodoroScreensInstrumentedTest {
         composeRule.setContent { NoteAppTheme { screen(PomodoroUiState(isLoading = false), SECTION_POOL) } }
 
         composeRule.onNodeWithText("没有启用项目，请先添加或启用一项。").assertIsDisplayed()
-        composeRule.onNodeWithText("帮我选一个").assertIsNotEnabled()
+        composeRule.onNodeWithText("抽一下").assertIsNotEnabled()
     }
 
     @Test
@@ -44,7 +45,8 @@ class PomodoroScreensInstrumentedTest {
                 PoolItemEditorDialog(
                     item = null,
                     suggestions = listOf("阅读"),
-                    onSave = { _, _, selected, _ -> category = selected },
+                    poolItems = emptyList(),
+                    onSave = { _, _, selected, _, _ -> category = selected },
                     onDismiss = {}
                 )
             }
@@ -54,6 +56,28 @@ class PomodoroScreensInstrumentedTest {
         composeRule.onNodeWithText("保存").performClick()
 
         assertEquals(EventCategory.WORK, category)
+    }
+
+    @Test
+    fun weightCounter_updatesCurrentEnabledShareInRealTime() {
+        val existing = com.yuncun.noteapp.data.local.entity.EventPoolItemEntity(
+            "other", "写作", EventCategory.WORK, true, Instant.now(), Instant.now(), weight = 1
+        )
+        composeRule.setContent {
+            NoteAppTheme {
+                PoolItemEditorDialog(
+                    item = null,
+                    suggestions = emptyList(),
+                    poolItems = listOf(existing),
+                    onSave = { _, _, _, _, _ -> },
+                    onDismiss = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("权重 1 · 占 50.0%").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("增加权重").performClick()
+        composeRule.onNodeWithText("权重 2 · 占 66.7%").assertIsDisplayed()
     }
 
     @Test
@@ -122,6 +146,35 @@ class PomodoroScreensInstrumentedTest {
     }
 
     @Test
+    fun wheelLegend_displaysEnabledWeightsAsExactPercentages() {
+        composeRule.setContent {
+            NoteAppTheme {
+                screen(
+                    PomodoroUiState(
+                        isLoading = false,
+                        poolItems = listOf(
+                            com.yuncun.noteapp.data.local.entity.EventPoolItemEntity(
+                                "1", "阅读", EventCategory.STUDY, true, Instant.now(), Instant.now(), weight = 1
+                            ),
+                            com.yuncun.noteapp.data.local.entity.EventPoolItemEntity(
+                                "2", "写作", EventCategory.WORK, true, Instant.now(), Instant.now(), weight = 3
+                            ),
+                            com.yuncun.noteapp.data.local.entity.EventPoolItemEntity(
+                                "3", "停用", EventCategory.SOCIAL, false, Instant.now(), Instant.now(), weight = 100
+                            )
+                        )
+                    ),
+                    SECTION_TIMER
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("阅读 · 权重 1 · 25.0%").assertIsDisplayed()
+        composeRule.onNodeWithText("写作 · 权重 3 · 75.0%").assertIsDisplayed()
+        composeRule.onNodeWithText("停用 · 权重 100 · 96.2%").assertDoesNotExist()
+    }
+
+    @Test
     fun toolbox_drawCandidateAndCarryToPomodoro() {
         val candidate = com.yuncun.noteapp.domain.model.EventPoolCandidate("1", "算法刷题", EventCategory.STUDY, true)
         composeRule.setContent {
@@ -158,7 +211,7 @@ class PomodoroScreensInstrumentedTest {
             state = state,
             initialSection = section,
             notificationGranted = notificationGranted,
-            onBack = {}, onSavePoolItem = { _, _, _, _ -> }, onSetPoolItemEnabled = { _, _ -> },
+            onBack = {}, onSavePoolItem = { _, _, _, _, _ -> }, onSetPoolItemEnabled = { _, _ -> },
             onDeletePoolItem = {}, onDraw = {}, onStart = onStart, onPause = {}, onResume = {},
             onReset = {}, onFinishEarly = {}, onStartRest = onStartRest, onClearSession = {},
             onRequestNotificationPermission = onRequestNotificationPermission

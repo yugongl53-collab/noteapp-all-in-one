@@ -10,7 +10,14 @@ import java.util.UUID
 /** 事件池页面使用的最小持久化接口，状态层无需感知 Room 写入细节。 */
 interface EventPoolRepository {
     suspend fun load(): List<EventPoolItemEntity>
-    suspend fun save(id: String?, title: String, category: EventCategory, isEnabled: Boolean, now: Instant): String
+    suspend fun save(
+        id: String?,
+        title: String,
+        category: EventCategory,
+        isEnabled: Boolean,
+        weight: Int,
+        now: Instant
+    ): String
     suspend fun setEnabled(id: String, enabled: Boolean, now: Instant)
     suspend fun delete(id: String)
 }
@@ -27,9 +34,11 @@ class RoomEventPoolRepository(
         title: String,
         category: EventCategory,
         isEnabled: Boolean,
+        weight: Int,
         now: Instant
     ): String {
         require(category in EventCategory.selectable) { "事件池不能选择“其他”性质" }
+        require(weight in 1..100) { "事件权重必须在 1 到 100 之间" }
         val existing = id?.let { requireNotNull(dao.findById(it)) { "事件池项目不存在" } }
         return dao.save(
             EventPoolItemEntity(
@@ -38,7 +47,8 @@ class RoomEventPoolRepository(
                 category = category,
                 isEnabled = isEnabled,
                 createdAt = existing?.createdAt ?: now,
-                updatedAt = now
+                updatedAt = now,
+                weight = weight
             )
         )
     }

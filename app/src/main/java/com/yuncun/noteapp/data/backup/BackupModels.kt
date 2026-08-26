@@ -124,7 +124,8 @@ internal data class EventPoolItemDto(
     val category: String,
     val isEnabled: Boolean,
     val createdAt: String,
-    val updatedAt: String
+    val updatedAt: String,
+    val weight: Int = 1
 )
 
 @Serializable

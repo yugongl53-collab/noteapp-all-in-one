@@ -5,6 +5,8 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.yuncun.noteapp.data.local.dao.AcademicTermDao
 import com.yuncun.noteapp.data.local.dao.BackupDao
 import com.yuncun.noteapp.data.local.dao.CourseScheduleDao
@@ -29,7 +31,7 @@ import com.yuncun.noteapp.data.local.entity.TimeRecordEntity
         EventPoolItemEntity::class,
         TimeRecordEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(RoomConverters::class)
@@ -54,7 +56,18 @@ abstract class NoteDatabase : RoomDatabase() {
                 context.applicationContext,
                 NoteDatabase::class.java,
                 DATABASE_NAME
-            ).build().also { instance = it }
+            ).addMigrations(MIGRATION_1_2)
+                .build()
+                .also { instance = it }
+        }
+
+        /** 旧事件池数据统一获得默认权重 1，保持升级前的等概率语义。 */
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE event_pool_items ADD COLUMN weight INTEGER NOT NULL DEFAULT 1"
+                )
+            }
         }
     }
 }

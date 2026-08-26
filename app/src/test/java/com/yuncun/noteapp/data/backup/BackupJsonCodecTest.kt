@@ -46,6 +46,16 @@ class BackupJsonCodecTest {
     }
 
     @Test
+    fun legacyJsonWithoutPoolWeight_decodesWithDefaultWeightOne() {
+        val valid = codec.encode(completeSnapshot(), NOW)
+        val legacyJson = valid.replace(Regex(",?\\s*\"weight\":\\s*7"), "")
+
+        val decoded = codec.decodeAndValidate(legacyJson)
+
+        assertEquals(1, decoded.eventPoolItems.single().weight)
+    }
+
+    @Test
     fun unknownVersionAndUnknownField_areRejectedBeforeImport() {
         val valid = codec.encode(completeSnapshot(), NOW)
         val unknownVersion = valid.replace("\"formatVersion\": 1", "\"formatVersion\": 2")
@@ -91,6 +101,9 @@ class BackupJsonCodecTest {
         assertTrue(runCatching {
             codec.validateSnapshot(original.copy(courseSchedules = original.courseSchedules.map { it.copy(endWeek = 99) }))
         }.isFailure)
+        assertTrue(runCatching {
+            codec.validateSnapshot(original.copy(eventPoolItems = original.eventPoolItems.map { it.copy(weight = 101) }))
+        }.isFailure)
     }
 
     private fun completeSnapshot(): BackupSnapshot {
@@ -102,7 +115,7 @@ class BackupJsonCodecTest {
             LocalDate.parse("2026-08-24"), null, LocalTime.of(9, 0), LocalTime.of(10, 0),
             true, true, 5, NOW, NOW
         )
-        val pool = EventPoolItemEntity("pool", "阅读", EventCategory.STUDY, true, NOW, NOW)
+        val pool = EventPoolItemEntity("pool", "阅读", EventCategory.STUDY, true, NOW, NOW, weight = 7)
         return BackupSnapshot(
             ideas = listOf(IdeaEntity("idea", "内容", listOf("标签"), NOW, NOW, NOW)),
             scheduleTasks = listOf(task),
