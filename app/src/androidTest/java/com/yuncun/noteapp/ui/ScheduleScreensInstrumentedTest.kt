@@ -79,7 +79,21 @@ class ScheduleScreensInstrumentedTest {
         composeRule.onNodeWithText("保存").performClick()
 
         assertEquals("周会", saved?.title)
+        assertEquals(ScheduleType.ONE_OFF, saved?.type)
         assertEquals("09:00", saved?.startTime.toString())
+    }
+
+    @Test
+    fun taskEditorDialog_defaultsToOneOffAndDisplaysSimplifiedLabels() {
+        composeRule.setContent {
+            NoteAppTheme {
+                TaskEditorDialog(null, emptyList(), { _, _ -> }, {})
+            }
+        }
+
+        composeRule.onNodeWithText("单次").assertIsDisplayed()
+        composeRule.onNodeWithText("每周").assertIsDisplayed()
+        composeRule.onNodeWithText("事件日期 YYYY-MM-DD").assertIsDisplayed()
     }
 
     @Test

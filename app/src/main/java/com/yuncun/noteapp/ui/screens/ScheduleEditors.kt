@@ -193,9 +193,9 @@ fun TaskEditorDialog(
 ) {
     var title by remember(entity?.id) { mutableStateOf(entity?.title ?: "") }
     var category by remember(entity?.id) { mutableStateOf(entity?.category ?: EventCategory.WORK) }
-    var type by remember(entity?.id) { mutableStateOf(entity?.type ?: ScheduleType.WEEKLY) }
+    var type by remember(entity?.id) { mutableStateOf(entity?.type ?: ScheduleType.ONE_OFF) }
     var weekdays by remember(entity?.id) { mutableStateOf(entity?.weekdays ?: setOf(DayOfWeek.MONDAY)) }
-    var dateInput by remember(entity?.id) { mutableStateOf((entity?.effectiveFrom ?: entity?.date ?: LocalDate.now()).toString()) }
+    var dateInput by remember(entity?.id) { mutableStateOf((entity?.date ?: entity?.effectiveFrom ?: LocalDate.now()).toString()) }
     var startTime by remember(entity?.id) { mutableStateOf(entity?.startTime?.toString() ?: "09:00") }
     var endTime by remember(entity?.id) { mutableStateOf(entity?.endTime?.toString() ?: "10:00") }
     var enabled by remember(entity?.id) { mutableStateOf(entity?.isEnabled ?: true) }
@@ -211,8 +211,8 @@ fun TaskEditorDialog(
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = type == ScheduleType.WEEKLY, onClick = { type = ScheduleType.WEEKLY }, label = { Text("每周循环") })
             FilterChip(selected = type == ScheduleType.ONE_OFF, onClick = { type = ScheduleType.ONE_OFF }, label = { Text("单次") })
+            FilterChip(selected = type == ScheduleType.WEEKLY, onClick = { type = ScheduleType.WEEKLY }, label = { Text("每周") })
         }
         if (type == ScheduleType.WEEKLY) WeekdaySelector(weekdays) { weekdays = it }
         OutlinedTextField(
