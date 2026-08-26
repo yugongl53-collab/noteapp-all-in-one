@@ -2,6 +2,9 @@ package com.yuncun.noteapp.domain.rules
 
 import com.yuncun.noteapp.domain.model.ScheduleInstance
 import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
 
 data class EventStreamItem(
     val instance: ScheduleInstance,
@@ -23,6 +26,27 @@ object ScheduleViewRules {
                 isNext = nextStart != null && instance.startAt == nextStart
             )
         }
+    }
+
+    /** 按日期与上下午（以 12:00 为界）对事件流进行分块，供纵向布局留白展示。 */
+    fun chunkEventStream(
+        items: List<EventStreamItem>,
+        zoneId: ZoneId = ZoneId.systemDefault()
+    ): List<List<EventStreamItem>> {
+        if (items.isEmpty()) return emptyList()
+        val chunks = mutableListOf<MutableList<EventStreamItem>>()
+        var currentKey: Pair<LocalDate, Boolean>? = null
+        for (item in items) {
+            val zonedDateTime = item.instance.startAt.atZone(zoneId)
+            val key = zonedDateTime.toLocalDate() to (zonedDateTime.toLocalTime() < LocalTime.NOON)
+            if (key != currentKey) {
+                currentKey = key
+                chunks.add(mutableListOf(item))
+            } else {
+                chunks.last().add(item)
+            }
+        }
+        return chunks
     }
 
     /** 相邻时间不算重叠；命中的双方都返回，确保界面不会静默隐藏任一实例。 */

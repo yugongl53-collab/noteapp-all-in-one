@@ -9,12 +9,16 @@ import androidx.compose.ui.test.performClick
 import com.yuncun.noteapp.data.repository.ScheduleTaskInput
 import com.yuncun.noteapp.data.local.entity.ScheduleTaskEntity
 import com.yuncun.noteapp.domain.model.EventCategory
+import com.yuncun.noteapp.domain.model.ScheduleInstance
+import com.yuncun.noteapp.domain.model.ScheduleSource
 import com.yuncun.noteapp.domain.model.ScheduleType
+import com.yuncun.noteapp.domain.rules.EventStreamItem
 import com.yuncun.noteapp.reminder.ReminderPermissionState
 import com.yuncun.noteapp.ui.schedule.ScheduleUiState
 import com.yuncun.noteapp.ui.schedule.ScheduleViewMode
 import com.yuncun.noteapp.ui.screens.CourseEditorDialog
 import com.yuncun.noteapp.ui.screens.OverlapConfirmationDialog
+import com.yuncun.noteapp.ui.screens.ScheduleDetailDialog
 import com.yuncun.noteapp.ui.screens.ScheduleScreen
 import com.yuncun.noteapp.ui.screens.TaskEditorDialog
 import com.yuncun.noteapp.ui.screens.TaskSummary
@@ -24,6 +28,7 @@ import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalTime
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -61,6 +66,78 @@ class ScheduleScreensInstrumentedTest {
         composeRule.onNodeWithText("事件流").performClick()
 
         assertEquals(ScheduleViewMode.EVENT_STREAM, selected)
+    }
+
+    @Test
+    fun eventStream_rendersChunkedInstancesAndOpensDetailDialog() {
+        val morningInstance = ScheduleInstance(
+            sourceId = "task-am",
+            source = ScheduleSource.TASK,
+            title = "上午例会",
+            category = EventCategory.WORK,
+            startAt = Instant.parse("2026-08-25T01:00:00Z"),
+            endAt = Instant.parse("2026-08-25T02:00:00Z")
+        )
+        val afternoonInstance = ScheduleInstance(
+            sourceId = "task-pm",
+            source = ScheduleSource.TASK,
+            title = "下午复盘",
+            category = EventCategory.STUDY,
+            startAt = Instant.parse("2026-08-25T06:00:00Z"),
+            endAt = Instant.parse("2026-08-25T07:00:00Z")
+        )
+        val streamItems = listOf(
+            EventStreamItem(morningInstance, isOngoing = false, isNext = true),
+            EventStreamItem(afternoonInstance, isOngoing = false, isNext = false)
+        )
+        composeRule.setContent {
+            NoteAppTheme {
+                ScheduleScreen(
+                    state = ScheduleUiState(
+                        isLoading = false,
+                        selectedWeek = LocalDate.parse("2026-08-24"),
+                        viewMode = ScheduleViewMode.EVENT_STREAM,
+                        eventStream = streamItems,
+                        tasks = listOf(
+                            ScheduleTaskEntity(
+                                id = "task-am",
+                                title = "上午例会",
+                                category = EventCategory.WORK,
+                                type = ScheduleType.ONE_OFF,
+                                weekdays = emptySet(),
+                                effectiveFrom = null,
+                                date = LocalDate.parse("2026-08-25"),
+                                startTime = LocalTime.of(9, 0),
+                                endTime = LocalTime.of(10, 0),
+                                isEnabled = true,
+                                reminderEnabled = false,
+                                reminderAdvanceMinutes = null,
+                                createdAt = Instant.parse("2026-08-25T00:00:00Z"),
+                                updatedAt = Instant.parse("2026-08-25T00:00:00Z")
+                            )
+                        )
+                    ),
+                    onSelectView = {},
+                    onPreviousWeek = {}, onNextWeek = {}, onCurrentWeek = {},
+                    onSaveTerm = { _, _ -> }, onDeleteTerm = {},
+                    onSaveTask = { _, _ -> }, onDeleteTask = {},
+                    onSaveCourse = { _, _ -> }, onDeleteCourse = {},
+                    onConfirmOverlap = {}, onCancelOverlap = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("上午例会").assertIsDisplayed()
+        composeRule.onNodeWithText("下午复盘").assertIsDisplayed()
+        composeRule.onNodeWithText("下一个事件").assertIsDisplayed()
+
+        // 验证没有显式的“上午”或“下午”文字标题
+        assertEquals(0, composeRule.onAllNodesWithText("上午").fetchSemanticsNodes().size)
+        assertEquals(0, composeRule.onAllNodesWithText("下午").fetchSemanticsNodes().size)
+
+        // 点击卡片打开详情弹窗
+        composeRule.onNodeWithText("上午例会").performClick()
+        composeRule.onNodeWithText("事件详情").assertIsDisplayed()
     }
 
     @Test
@@ -163,6 +240,74 @@ class ScheduleScreensInstrumentedTest {
         composeRule.onNodeWithText("提醒已配置但未生效：缺少通知权限、“闹钟和提醒”权限").assertIsDisplayed()
         composeRule.onNodeWithText("前往提醒设置").performClick()
         assertTrue(opened)
+    }
+
+    @Test
+    fun scheduleDetailDialog_displaysActionsAndConfirmationTriggersDelete() {
+        var deleted = false
+        val instance = ScheduleInstance(
+            sourceId = "task-1",
+            source = ScheduleSource.TASK,
+            title = "周会",
+            category = EventCategory.WORK,
+            startAt = Instant.parse("2026-08-25T01:00:00Z"),
+            endAt = Instant.parse("2026-08-25T02:00:00Z")
+        )
+        composeRule.setContent {
+            NoteAppTheme {
+                ScheduleDetailDialog(
+                    instance = instance,
+                    onEdit = {},
+                    onDelete = { deleted = true },
+                    onDismiss = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("前往编辑").assertIsDisplayed()
+        composeRule.onNodeWithText("关闭").assertIsDisplayed()
+        composeRule.onNodeWithText("删除").assertIsDisplayed()
+
+        // 点击删除弹出二次确认
+        composeRule.onNodeWithText("删除").performClick()
+        composeRule.onNodeWithText("确认删除普通事件？").assertIsDisplayed()
+        composeRule.onNodeWithText("确定要删除「周会」吗？删除后无法恢复，并会一并清除相关提醒。").assertIsDisplayed()
+
+        // 点击确认删除
+        composeRule.onNodeWithText("确认删除").performClick()
+        assertTrue(deleted)
+    }
+
+    @Test
+    fun scheduleDetailDialog_courseConfirmationShowsCourseTitleAndCancelKeepsData() {
+        var deleted = false
+        val instance = ScheduleInstance(
+            sourceId = "course-1",
+            source = ScheduleSource.COURSE,
+            title = "高等数学",
+            category = EventCategory.STUDY,
+            startAt = Instant.parse("2026-08-25T01:00:00Z"),
+            endAt = Instant.parse("2026-08-25T02:00:00Z"),
+            location = "理学楼 101"
+        )
+        composeRule.setContent {
+            NoteAppTheme {
+                ScheduleDetailDialog(
+                    instance = instance,
+                    onEdit = {},
+                    onDelete = { deleted = true },
+                    onDismiss = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("删除").performClick()
+        composeRule.onNodeWithText("确认删除课程？").assertIsDisplayed()
+        composeRule.onNodeWithText("确定要删除「高等数学」吗？删除后无法恢复，并会一并清除相关提醒。").assertIsDisplayed()
+
+        // 取消不触发删除
+        composeRule.onNodeWithText("取消").performClick()
+        assertFalse(deleted)
     }
 
     @androidx.compose.runtime.Composable
