@@ -56,6 +56,7 @@ data class StatisticsUiState(
 /** M6 状态层以当前设备时区重算日周统计，并在写入失败时保留完整表单输入。 */
 class StatisticsViewModel(
     private val repository: TimeRecordRepository,
+    private val settlementCoordinator: com.yuncun.noteapp.settlement.ScheduleSettlementCoordinator = com.yuncun.noteapp.settlement.NoOpScheduleSettlementCoordinator,
     private val clock: () -> Instant = Instant::now,
     private val zoneId: () -> ZoneId = ZoneId::systemDefault
 ) : ViewModel() {
@@ -73,7 +74,10 @@ class StatisticsViewModel(
     fun refresh() {
         _uiState.update { it.copy(isLoading = true, loadError = null) }
         viewModelScope.launch {
-            runCatching { repository.load() }
+            runCatching {
+                settlementCoordinator.synchronize()
+                repository.load()
+            }
                 .onSuccess { records -> applyRecords(records) }
                 .onFailure { error ->
                     _uiState.update {
@@ -266,11 +270,14 @@ class StatisticsViewModel(
         return localDateTime.atOffset(offsets.first()).toInstant()
     }
 
-    class Factory(private val repository: TimeRecordRepository) : ViewModelProvider.Factory {
+    class Factory(
+        private val repository: TimeRecordRepository,
+        private val settlementCoordinator: com.yuncun.noteapp.settlement.ScheduleSettlementCoordinator = com.yuncun.noteapp.settlement.NoOpScheduleSettlementCoordinator
+    ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(StatisticsViewModel::class.java)) { "不支持的 ViewModel 类型" }
-            return StatisticsViewModel(repository) as T
+            return StatisticsViewModel(repository, settlementCoordinator) as T
         }
     }
 }

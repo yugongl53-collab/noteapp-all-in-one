@@ -25,6 +25,7 @@ import java.time.LocalTime
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -195,6 +196,53 @@ class NoteDatabaseInstrumentedTest {
         assertEquals("写作", edited.title)
         repository.delete(edited.id)
         assertTrue(repository.load().isEmpty())
+    }
+
+    @Test
+    fun timeRecordDao_insertAutoSettlement_insertsNewAndSkipsOverlap() = runBlocking {
+        val dao = database.timeRecordDao()
+        val start = Instant.parse("2026-08-25T01:00:00Z")
+        val end = Instant.parse("2026-08-25T02:00:00Z")
+        val entity = TimeRecordEntity(
+            id = "auto-1",
+            title = "课程学习",
+            category = EventCategory.STUDY,
+            startAt = start,
+            endAt = end,
+            source = "schedule",
+            relatedTaskId = null,
+            relatedPoolItemId = null,
+            createdAt = start,
+            updatedAt = start
+        )
+
+        // 首次插入成功
+        val firstInsert = dao.insertAutoSettlement(entity)
+        assertTrue(firstInsert)
+
+        // 重复插入同 ID 记录静默跳过 (返回 false)
+        val duplicateInsert = dao.insertAutoSettlement(entity)
+        assertFalse(duplicateInsert)
+
+        // 插入与已有记录重叠的新记录静默跳过 (返回 false)
+        val overlapEntity = entity.copy(
+            id = "auto-2",
+            startAt = start.plusSeconds(1800),
+            endAt = end.plusSeconds(1800)
+        )
+        val overlapInsert = dao.insertAutoSettlement(overlapEntity)
+        assertFalse(overlapInsert)
+
+        // 插入首尾相接的记录成功
+        val adjacentEntity = entity.copy(
+            id = "auto-3",
+            startAt = end,
+            endAt = end.plusSeconds(3600)
+        )
+        val adjacentInsert = dao.insertAutoSettlement(adjacentEntity)
+        assertTrue(adjacentInsert)
+
+        assertEquals(2, dao.getAll().size)
     }
 
     @Test

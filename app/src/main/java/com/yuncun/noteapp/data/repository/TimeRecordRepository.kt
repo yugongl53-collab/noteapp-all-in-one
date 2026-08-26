@@ -20,6 +20,16 @@ interface TimeRecordRepository {
         now: Instant
     ): String
 
+    suspend fun saveAutoSettlement(
+        id: String,
+        title: String,
+        category: EventCategory,
+        startAt: Instant,
+        endAt: Instant,
+        relatedTaskId: String?,
+        now: Instant
+    ): Boolean
+
     suspend fun delete(id: String)
 }
 
@@ -59,6 +69,31 @@ class RoomTimeRecordRepository(
             updatedAt = now
         )
         return dao.save(entity)
+    }
+
+    override suspend fun saveAutoSettlement(
+        id: String,
+        title: String,
+        category: EventCategory,
+        startAt: Instant,
+        endAt: Instant,
+        relatedTaskId: String?,
+        now: Instant
+    ): Boolean {
+        require(category in EventCategory.selectable) { "时间记录不能选择“其他”性质" }
+        val entity = TimeRecordEntity(
+            id = id,
+            title = TextRules.normalizeRequiredText(title, "活动名称"),
+            category = category,
+            startAt = startAt,
+            endAt = endAt,
+            source = "schedule",
+            relatedTaskId = relatedTaskId,
+            relatedPoolItemId = null,
+            createdAt = now,
+            updatedAt = now
+        )
+        return dao.insertAutoSettlement(entity)
     }
 
     override suspend fun delete(id: String) {

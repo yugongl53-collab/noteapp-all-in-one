@@ -69,7 +69,11 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
     val quickDraft by ideaViewModel.quickDraft.collectAsState()
     val editorDraft by ideaViewModel.editorDraft.collectAsState()
     val scheduleFactory = remember(application) {
-        ScheduleViewModel.Factory(application.scheduleRepository, application.reminderCoordinator)
+        ScheduleViewModel.Factory(
+            application.scheduleRepository,
+            application.reminderCoordinator,
+            application.scheduleSettlementCoordinator
+        )
     }
     val scheduleViewModel: ScheduleViewModel = viewModel(factory = scheduleFactory)
     val scheduleState by scheduleViewModel.uiState.collectAsState()
@@ -79,7 +83,10 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
     val pomodoroViewModel: PomodoroViewModel = viewModel(factory = pomodoroFactory)
     val pomodoroState by pomodoroViewModel.uiState.collectAsState()
     val statisticsFactory = remember(application) {
-        StatisticsViewModel.Factory(application.timeRecordRepository)
+        StatisticsViewModel.Factory(
+            application.timeRecordRepository,
+            application.scheduleSettlementCoordinator
+        )
     }
     val statisticsViewModel: StatisticsViewModel = viewModel(factory = statisticsFactory)
     val statisticsState by statisticsViewModel.uiState.collectAsState()

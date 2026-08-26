@@ -57,6 +57,9 @@ class NoteApp : Application() {
     lateinit var reminderCoordinator: ReminderCoordinator
         private set
 
+    lateinit var scheduleSettlementCoordinator: com.yuncun.noteapp.settlement.ScheduleSettlementCoordinator
+        private set
+
     lateinit var pomodoroCoordinator: PomodoroCoordinator
         private set
 
@@ -83,6 +86,12 @@ class NoteApp : Application() {
             notificationGateway = AndroidReminderNotificationGateway(this),
             registry = SharedPreferencesReminderRegistry(this)
         )
+        scheduleSettlementCoordinator = com.yuncun.noteapp.settlement.DefaultScheduleSettlementCoordinator(
+            scheduleRepository = scheduleRepository,
+            timeRecordRepository = timeRecordRepository,
+            registry = com.yuncun.noteapp.settlement.SharedPreferencesSettlementRegistry(this),
+            alarmGateway = com.yuncun.noteapp.settlement.AndroidSettlementAlarmGateway(this)
+        )
         pomodoroCoordinator = DefaultPomodoroCoordinator(
             store = preferencesRepository,
             alarmGateway = AndroidPomodoroAlarmGateway(this),
@@ -93,7 +102,7 @@ class NoteApp : Application() {
             preferencesStore = preferencesRepository,
             reminderCoordinator = reminderCoordinator
         )
-        // 每次进程启动都以数据库、活动会话与当前系统权限为事实重建提醒。
+        // 每次进程启动都以数据库、活动会话与当前系统权限为事实重建提醒与补齐日程结算。
         synchronizeReminders()
     }
 
@@ -102,6 +111,7 @@ class NoteApp : Application() {
             try {
                 reminderCoordinator.synchronize()
                 pomodoroCoordinator.synchronize()
+                scheduleSettlementCoordinator.synchronize()
             } finally {
                 onComplete()
             }

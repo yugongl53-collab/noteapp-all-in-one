@@ -43,7 +43,7 @@ class StatisticsViewModelTest {
             record("new", "阅读", EventCategory.STUDY, "2026-08-25T01:00:00Z", "2026-08-25T02:00:00Z", now.plusSeconds(1))
         ))
 
-        val viewModel = StatisticsViewModel(repository, { now }, { zone })
+        val viewModel = viewModel(repository)
         advanceUntilIdle()
 
         assertFalse(viewModel.uiState.value.isLoading)
@@ -53,7 +53,7 @@ class StatisticsViewModelTest {
 
     @Test
     fun weekNavigation_usesMondayToSundayAndKeepsRankingSelection() = runTest(dispatcher) {
-        val viewModel = StatisticsViewModel(FakeRepository(mutableListOf()), { now }, { zone })
+        val viewModel = viewModel(FakeRepository(mutableListOf()))
         advanceUntilIdle()
 
         viewModel.selectPeriod(StatisticsPeriod.WEEK)
@@ -68,7 +68,7 @@ class StatisticsViewModelTest {
     @Test
     fun saveDraft_reloadsStatisticsAndNormalizesMinutePrecision() = runTest(dispatcher) {
         val repository = FakeRepository(mutableListOf())
-        val viewModel = StatisticsViewModel(repository, { now }, { zone })
+        val viewModel = viewModel(repository)
         advanceUntilIdle()
         viewModel.prepareNewRecord()
         viewModel.updateTitle("写作")
@@ -86,7 +86,7 @@ class StatisticsViewModelTest {
     @Test
     fun invalidInputAndRepositoryFailure_keepDraftForRetry() = runTest(dispatcher) {
         val repository = FakeRepository(mutableListOf(), failSave = true)
-        val viewModel = StatisticsViewModel(repository, { now }, { zone })
+        val viewModel = viewModel(repository)
         advanceUntilIdle()
         viewModel.prepareNewRecord()
         viewModel.updateTitle("写作")
@@ -108,7 +108,7 @@ class StatisticsViewModelTest {
         val repository = FakeRepository(mutableListOf(
             record("only", "写作", EventCategory.WORK, "2026-08-25T01:00:00Z", "2026-08-25T02:00:00Z", now)
         ))
-        val viewModel = StatisticsViewModel(repository, { now }, { zone })
+        val viewModel = viewModel(repository)
         advanceUntilIdle()
 
         viewModel.deleteRecord("only")
@@ -118,6 +118,35 @@ class StatisticsViewModelTest {
         assertTrue(viewModel.uiState.value.nameSuggestions.isEmpty())
         assertEquals("时间记录已永久删除", viewModel.uiState.value.feedback)
     }
+
+    @Test
+    fun refresh_synchronizesSettlementBeforeLoadingRecords() = runTest(dispatcher) {
+        val repository = FakeRepository(mutableListOf())
+        var settlementSyncCount = 0
+        val fakeSettlement = object : com.yuncun.noteapp.settlement.ScheduleSettlementCoordinator {
+            override suspend fun synchronize(): com.yuncun.noteapp.settlement.SettlementSyncResult {
+                settlementSyncCount++
+                repository.records += record("auto-1", "自动结算事件", EventCategory.WORK, "2026-08-25T00:00:00Z", "2026-08-25T01:00:00Z", now)
+                return com.yuncun.noteapp.settlement.SettlementSyncResult(settledCount = 1)
+            }
+        }
+        val viewModel = viewModel(repository, fakeSettlement)
+        advanceUntilIdle()
+
+        assertEquals(1, settlementSyncCount)
+        assertEquals(60L, viewModel.uiState.value.statistics?.recordedMinutes)
+        assertEquals("自动结算事件", viewModel.uiState.value.visibleRecords.single().title)
+    }
+
+    private fun viewModel(
+        repository: TimeRecordRepository,
+        settlement: com.yuncun.noteapp.settlement.ScheduleSettlementCoordinator = com.yuncun.noteapp.settlement.NoOpScheduleSettlementCoordinator
+    ) = StatisticsViewModel(
+        repository = repository,
+        settlementCoordinator = settlement,
+        clock = { now },
+        zoneId = { zone }
+    )
 
     private fun record(
         id: String,
@@ -149,6 +178,21 @@ class StatisticsViewModelTest {
             records.removeAll { it.id == targetId }
             records += TimeRecordEntity(targetId, title.trim(), category, startAt, endAt, "manual", null, null, now, now)
             return targetId
+        }
+
+        override suspend fun saveAutoSettlement(
+            id: String,
+            title: String,
+            category: EventCategory,
+            startAt: Instant,
+            endAt: Instant,
+            relatedTaskId: String?,
+            now: Instant
+        ): Boolean {
+            if (failSave) error("磁盘不可用")
+            if (records.any { it.id == id || (startAt < it.endAt && endAt > it.startAt) }) return false
+            records += TimeRecordEntity(id, title.trim(), category, startAt, endAt, "schedule", relatedTaskId, null, now, now)
+            return true
         }
 
         override suspend fun delete(id: String) {

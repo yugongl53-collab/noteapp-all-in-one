@@ -106,6 +106,16 @@ class BackupJsonCodecTest {
         }.isFailure)
     }
 
+    @Test
+    fun timeRecordSource_acceptsManualAndSchedule_rejectsUnknown() {
+        val original = completeSnapshot()
+        val scheduleRecord = original.timeRecords.single().copy(source = "schedule")
+        codec.validateSnapshot(original.copy(timeRecords = listOf(scheduleRecord)))
+
+        val unknownSource = scheduleRecord.copy(source = "unknown_source")
+        assertTrue(runCatching { codec.validateSnapshot(original.copy(timeRecords = listOf(unknownSource))) }.isFailure)
+    }
+
     private fun completeSnapshot(): BackupSnapshot {
         val term = AcademicTermEntity(
             "term", 2026, TermSeason.FALL, LocalDate.parse("2026-09-01"), LocalDate.parse("2027-01-15"), NOW, NOW
