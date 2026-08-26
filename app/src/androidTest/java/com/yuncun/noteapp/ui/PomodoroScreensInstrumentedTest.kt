@@ -12,6 +12,7 @@ import com.yuncun.noteapp.domain.model.PomodoroSession
 import com.yuncun.noteapp.domain.model.PomodoroState
 import com.yuncun.noteapp.ui.pomodoro.PomodoroUiState
 import com.yuncun.noteapp.ui.screens.PomodoroScreen
+import com.yuncun.noteapp.ui.screens.ToolboxScreen
 import com.yuncun.noteapp.ui.screens.PoolItemEditorDialog
 import com.yuncun.noteapp.ui.screens.SECTION_POOL
 import com.yuncun.noteapp.ui.screens.SECTION_TIMER
@@ -96,6 +97,54 @@ class PomodoroScreensInstrumentedTest {
         assertTrue(restStarted)
     }
 
+    @Test
+    fun toolbox_displaysBothPomodoroAndEventPoolCards() {
+        composeRule.setContent {
+            NoteAppTheme {
+                screen(
+                    PomodoroUiState(
+                        isLoading = false,
+                        poolItems = listOf(
+                            com.yuncun.noteapp.data.local.entity.EventPoolItemEntity(
+                                "1", "背单词", EventCategory.STUDY, true, Instant.now(), Instant.now()
+                            )
+                        )
+                    ),
+                    SECTION_TIMER
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("番茄钟").assertIsDisplayed()
+        composeRule.onNodeWithText("事件池与抽奖").assertIsDisplayed()
+        composeRule.onNodeWithText("启用 1 / 1 项").assertIsDisplayed()
+        composeRule.onNodeWithText("管理事件池").assertIsDisplayed()
+    }
+
+    @Test
+    fun toolbox_drawCandidateAndCarryToPomodoro() {
+        val candidate = com.yuncun.noteapp.domain.model.EventPoolCandidate("1", "算法刷题", EventCategory.STUDY, true)
+        composeRule.setContent {
+            NoteAppTheme {
+                screen(
+                    PomodoroUiState(
+                        isLoading = false,
+                        poolItems = listOf(
+                            com.yuncun.noteapp.data.local.entity.EventPoolItemEntity(
+                                "1", "算法刷题", EventCategory.STUDY, true, Instant.now(), Instant.now()
+                            )
+                        ),
+                        selectedCandidate = candidate
+                    ),
+                    SECTION_TIMER
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("算法刷题").assertIsDisplayed()
+        composeRule.onNodeWithText("带入番茄钟").performClick()
+    }
+
     @androidx.compose.runtime.Composable
     private fun screen(
         state: PomodoroUiState,
@@ -105,7 +154,7 @@ class PomodoroScreensInstrumentedTest {
         onRequestNotificationPermission: () -> Unit = {},
         onStartRest: () -> Unit = {}
     ) {
-        PomodoroScreen(
+        ToolboxScreen(
             state = state,
             initialSection = section,
             notificationGranted = notificationGranted,
