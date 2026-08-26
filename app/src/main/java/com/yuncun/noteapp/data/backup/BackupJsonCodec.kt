@@ -134,6 +134,7 @@ class BackupJsonCodec {
         validateIdentityAndTimestamps(entity.id, entity.createdAt, entity.updatedAt)
         EntityValidation.requireSelectableCategory(entity.category)
         require(entity.title == EntityValidation.requiredText(entity.title, "事件名称")) { "事件名称必须已规范化" }
+        require(entity.weight in 1..100) { "事件权重必须在 1 到 100 之间" }
     }
 
     private fun validateTimeRecords(
@@ -201,7 +202,10 @@ private fun BackupSnapshot.toDto() = BackupDataDto(
         )
     },
     eventPoolItems = eventPoolItems.map {
-        EventPoolItemDto(it.id, it.title, it.category.stableId, it.isEnabled, it.createdAt.toString(), it.updatedAt.toString())
+        EventPoolItemDto(
+            it.id, it.title, it.category.stableId, it.isEnabled,
+            it.createdAt.toString(), it.updatedAt.toString(), it.weight
+        )
     },
     timeRecords = timeRecords.map {
         TimeRecordDto(
@@ -250,7 +254,7 @@ private fun BackupDataDto.toSnapshot() = BackupSnapshot(
     eventPoolItems = eventPoolItems.map {
         EventPoolItemEntity(
             it.id, it.title, EventCategory.fromStableId(it.category), it.isEnabled,
-            parseInstant(it.createdAt, "事件池创建时间"), parseInstant(it.updatedAt, "事件池更新时间")
+            parseInstant(it.createdAt, "事件池创建时间"), parseInstant(it.updatedAt, "事件池更新时间"), it.weight
         )
     },
     timeRecords = timeRecords.map {

@@ -12,6 +12,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -37,16 +38,27 @@ class EventPoolRepositoryInstrumentedTest {
 
     @Test
     fun crud_preservesCreationTimeAndPersistsEnabledState() = runBlocking {
-        repository.save(null, " 阅读 ", EventCategory.STUDY, true, now)
+        repository.save(null, " 阅读 ", EventCategory.STUDY, true, 3, now)
         repository.setEnabled("pool", false, now.plusSeconds(60))
-        repository.save("pool", "写作", EventCategory.WORK, false, now.plusSeconds(120))
+        repository.save("pool", "写作", EventCategory.WORK, false, 7, now.plusSeconds(120))
 
         val saved = repository.load().single()
         assertEquals("写作", saved.title)
         assertEquals(now, saved.createdAt)
         assertFalse(saved.isEnabled)
+        assertEquals(7, saved.weight)
 
         repository.delete("pool")
         assertEquals(emptyList<Any>(), repository.load())
+    }
+
+    @Test
+    fun save_rejectsWeightOutsideSupportedRangeWithoutWriting() = runBlocking {
+        val result = runCatching {
+            repository.save(null, "阅读", EventCategory.STUDY, true, 0, now)
+        }
+
+        assertTrue(result.isFailure)
+        assertTrue(repository.load().isEmpty())
     }
 }

@@ -133,10 +133,21 @@ data class ScheduleInstance(
     val location: String? = null
 )
 
-/** 事件池抽取只依赖稳定标识、名称、性质和启用状态，不向领域规则泄漏 Room。 */
+/** 事件池抽取只依赖稳定标识、名称、性质、启用状态和正整数权重，不向领域规则泄漏 Room。 */
 data class EventPoolCandidate(
     val id: String,
     val title: String,
     val category: EventCategory,
-    val isEnabled: Boolean
+    val isEnabled: Boolean,
+    val weight: Int = 1
 )
+
+/** 转盘扇区以正上方为零度，几何与抽取共用同一启用候选顺序。 */
+data class WheelSegment(
+    val candidate: EventPoolCandidate,
+    val startAngle: Double,
+    val sweepAngle: Double,
+    val percentage: Double
+) {
+    val centerAngle: Double get() = startAngle + sweepAngle / 2.0
+}

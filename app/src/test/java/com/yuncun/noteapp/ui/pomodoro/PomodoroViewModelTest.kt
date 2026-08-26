@@ -43,7 +43,7 @@ class PomodoroViewModelTest {
     @Test
     fun initialLoad_derivesDistinctNameSuggestions() = runTest(dispatcher) {
         val repository = FakePoolRepository(mutableListOf(item("one", "阅读", true), item("two", "阅读", false)))
-        val viewModel = PomodoroViewModel(repository, FakeCoordinator(), clock = { now }, nextIndex = { 0 })
+        val viewModel = PomodoroViewModel(repository, FakeCoordinator(), clock = { now }, nextWeightUnit = { 0 })
 
         advanceUntilIdle()
 
@@ -54,7 +54,7 @@ class PomodoroViewModelTest {
     @Test
     fun draw_usesOnlyEnabledCandidatesAndEmptyPoolShowsGuidance() = runTest(dispatcher) {
         val repository = FakePoolRepository(mutableListOf(item("off", "停用", false), item("on", "启用", true)))
-        val viewModel = PomodoroViewModel(repository, FakeCoordinator(), clock = { now }, nextIndex = { 0 })
+        val viewModel = PomodoroViewModel(repository, FakeCoordinator(), clock = { now }, nextWeightUnit = { 0 })
         advanceUntilIdle()
 
         viewModel.draw()
@@ -69,15 +69,35 @@ class PomodoroViewModelTest {
     }
 
     @Test
+    fun draw_usesInjectedWeightUnitAndPublishesAnimationVersion() = runTest(dispatcher) {
+        val repository = FakePoolRepository(
+            mutableListOf(item("small", "小权重", true).copy(weight = 1), item("large", "大权重", true).copy(weight = 3))
+        )
+        val viewModel = PomodoroViewModel(
+            repository,
+            FakeCoordinator(),
+            clock = { now },
+            nextWeightUnit = { total -> total - 1 }
+        )
+        advanceUntilIdle()
+
+        viewModel.draw()
+
+        assertEquals("large", viewModel.uiState.value.selectedCandidate?.id)
+        assertEquals(1, viewModel.uiState.value.drawVersion)
+    }
+
+    @Test
     fun savePoolItem_reloadsPersistedSnapshot() = runTest(dispatcher) {
         val repository = FakePoolRepository(mutableListOf())
         val viewModel = PomodoroViewModel(repository, FakeCoordinator(), clock = { now })
         advanceUntilIdle()
 
-        viewModel.savePoolItem(null, "写作", EventCategory.WORK, true)
+        viewModel.savePoolItem(null, "写作", EventCategory.WORK, 7, true)
         advanceUntilIdle()
 
         assertEquals(listOf("写作"), viewModel.uiState.value.poolItems.map { it.title })
+        assertEquals(7, viewModel.uiState.value.poolItems.single().weight)
         assertEquals("事件池项目已保存", viewModel.uiState.value.feedback)
         assertEquals(1, viewModel.uiState.value.actionCompletedVersion)
     }
@@ -88,7 +108,7 @@ class PomodoroViewModelTest {
         val viewModel = PomodoroViewModel(repository, FakeCoordinator(), clock = { now })
         advanceUntilIdle()
 
-        viewModel.savePoolItem(null, "写作", EventCategory.WORK, true)
+        viewModel.savePoolItem(null, "写作", EventCategory.WORK, 1, true)
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.feedback.orEmpty().startsWith("事件池操作失败"))
@@ -110,12 +130,13 @@ class PomodoroViewModelTest {
             title: String,
             category: EventCategory,
             isEnabled: Boolean,
+            weight: Int,
             now: Instant
         ): String {
             if (failSave) error("磁盘不可用")
             val targetId = id ?: "item-${items.size}"
             items.removeAll { it.id == targetId }
-            items += EventPoolItemEntity(targetId, title, category, isEnabled, now, now)
+            items += EventPoolItemEntity(targetId, title, category, isEnabled, now, now, weight)
             return targetId
         }
 

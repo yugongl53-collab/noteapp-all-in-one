@@ -1,5 +1,10 @@
 package com.yuncun.noteapp.ui.screens
 
+import android.graphics.Paint
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,6 +14,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,6 +25,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -26,10 +33,12 @@ import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Timer
@@ -64,6 +73,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -71,10 +86,17 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.yuncun.noteapp.data.local.entity.EventPoolItemEntity
 import com.yuncun.noteapp.domain.model.EventCategory
+import com.yuncun.noteapp.domain.model.EventPoolCandidate
 import com.yuncun.noteapp.domain.model.PomodoroPhase
 import com.yuncun.noteapp.domain.model.PomodoroSession
 import com.yuncun.noteapp.domain.model.PomodoroState
+import com.yuncun.noteapp.domain.model.WheelSegment
+import com.yuncun.noteapp.domain.rules.EventPoolRules
 import com.yuncun.noteapp.ui.pomodoro.PomodoroUiState
+import java.util.Locale
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 const val SECTION_POOL = "pool"
 const val SECTION_TIMER = "timer"
@@ -87,7 +109,7 @@ const val SECTION_TIMER = "timer"
 fun ToolboxScreen(
     state: PomodoroUiState,
     notificationGranted: Boolean,
-    onSavePoolItem: (String?, String, EventCategory, Boolean) -> Unit,
+    onSavePoolItem: (String?, String, EventCategory, Int, Boolean) -> Unit,
     onSetPoolItemEnabled: (String, Boolean) -> Unit,
     onDeletePoolItem: (String) -> Unit,
     onDraw: () -> Unit,
@@ -204,8 +226,9 @@ fun ToolboxScreen(
         PoolItemEditorDialog(
             item = editingItem,
             suggestions = state.poolNameSuggestions,
-            onSave = { id, title, category, enabled ->
-                onSavePoolItem(id, title, category, enabled)
+            poolItems = state.poolItems,
+            onSave = { id, title, category, weight, enabled ->
+                onSavePoolItem(id, title, category, weight, enabled)
                 showEditor = false
             },
             onDismiss = { showEditor = false }
@@ -250,7 +273,7 @@ fun PomodoroScreen(
     state: PomodoroUiState,
     initialSection: String,
     notificationGranted: Boolean,
-    onSavePoolItem: (String?, String, EventCategory, Boolean) -> Unit,
+    onSavePoolItem: (String?, String, EventCategory, Int, Boolean) -> Unit,
     onSetPoolItemEnabled: (String, Boolean) -> Unit,
     onDeletePoolItem: (String) -> Unit,
     onDraw: () -> Unit,
@@ -551,9 +574,7 @@ private fun PomodoroCard(
     }
 }
 
-/**
- * 事件抽奖决策模块卡片：展示启用候选概览、等概率抽取、抽中一键带入番茄钟与管理事件池入口。
- */
+/** 事件抽奖卡片让加权算法、扇区比例和最终指针共用同一组领域几何结果。 */
 @Composable
 private fun EventDrawCard(
     state: PomodoroUiState,
@@ -564,6 +585,49 @@ private fun EventDrawCard(
 ) {
     val enabledCount = state.poolItems.count { it.isEnabled }
     val totalCount = state.poolItems.size
+    val segments = remember(state.poolItems) {
+        EventPoolRules.wheelSegments(
+            state.poolItems.map {
+                EventPoolCandidate(it.id, it.title, it.category, it.isEnabled, it.weight)
+            }
+        )
+    }
+    val rotation = remember { Animatable(0f) }
+    var isSpinning by remember { mutableStateOf(false) }
+    var revealedCandidate by remember { mutableStateOf(state.selectedCandidate?.takeIf { state.drawVersion == 0L }) }
+
+    LaunchedEffect(state.drawVersion, state.selectedCandidate?.id, segments) {
+        val selected = state.selectedCandidate
+        if (selected == null) {
+            revealedCandidate = null
+            isSpinning = false
+            return@LaunchedEffect
+        }
+        if (state.drawVersion == 0L) {
+            revealedCandidate = selected
+            return@LaunchedEffect
+        }
+
+        revealedCandidate = null
+        val target = EventPoolRules.targetRotation(
+            currentRotation = rotation.value.toDouble(),
+            selectedId = selected.id,
+            segments = segments,
+            fullTurns = if (segments.size == 1) 0 else 5
+        ).toFloat()
+        if (segments.size == 1) {
+            rotation.snapTo(target % 360f)
+        } else {
+            isSpinning = true
+            rotation.animateTo(
+                targetValue = target,
+                animationSpec = tween(durationMillis = 3_200, easing = LinearOutSlowInEasing)
+            )
+            rotation.snapTo(target % 360f)
+        }
+        isSpinning = false
+        revealedCandidate = selected
+    }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -598,7 +662,6 @@ private fun EventDrawCard(
 
             HorizontalDivider()
 
-            // 抽奖区域
             if (enabledCount == 0) {
                 Text(
                     "没有启用项目，请先添加或启用一项。",
@@ -612,24 +675,24 @@ private fun EventDrawCard(
                 ) {
                     Icon(Icons.Default.Refresh, contentDescription = null)
                     Spacer(Modifier.width(6.dp))
-                    Text("帮我选一个")
+                    Text("抽一下")
                 }
             } else {
-                if (state.selectedCandidate == null) {
-                    Text(
-                        "每次抽取独立且等概率。",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Button(
-                        onClick = onDraw,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null)
-                        Spacer(Modifier.width(6.dp))
-                        Text("帮我选一个")
-                    }
-                } else {
+                Text(
+                    "扇区大小就是本次独立抽取的概率。",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                LuckyWheel(
+                    segments = segments,
+                    rotation = rotation.value,
+                    isSpinning = isSpinning,
+                    onDraw = onDraw,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+                WheelLegend(segments)
+
+                revealedCandidate?.let { candidate ->
                     OutlinedCard(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
@@ -644,13 +707,13 @@ private fun EventDrawCard(
                                 color = MaterialTheme.colorScheme.primary
                             )
                             Text(
-                                state.selectedCandidate.title,
+                                candidate.title,
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold
                             )
                             AssistChip(
                                 onClick = {},
-                                label = { Text(state.selectedCandidate.category.displayName) }
+                                label = { Text("${candidate.category.displayName} · 权重 ${candidate.weight}") }
                             )
 
                             Row(
@@ -658,7 +721,7 @@ private fun EventDrawCard(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 FilledTonalButton(
-                                    onClick = { onCarryToPomodoro(state.selectedCandidate.title) },
+                                    onClick = { onCarryToPomodoro(candidate.title) },
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Icon(Icons.Default.Timer, contentDescription = null)
@@ -667,6 +730,7 @@ private fun EventDrawCard(
                                 }
                                 OutlinedButton(
                                     onClick = onDraw,
+                                    enabled = !isSpinning,
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Icon(Icons.Default.Refresh, contentDescription = null)
@@ -679,7 +743,6 @@ private fun EventDrawCard(
                 }
             }
 
-            // 管理事件池入口
             OutlinedButton(
                 onClick = onOpenPoolManager,
                 modifier = Modifier.fillMaxWidth()
@@ -690,6 +753,113 @@ private fun EventDrawCard(
             }
         }
     }
+}
+
+/** Canvas 只负责扇区和标签，中心按钮独立于旋转图层以保持可操作。 */
+@Composable
+private fun LuckyWheel(
+    segments: List<WheelSegment>,
+    rotation: Float,
+    isSpinning: Boolean,
+    onDraw: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = segments.map { categoryColor(it.candidate.category) }
+    val labelColor = Color.White
+    Box(modifier = modifier.size(280.dp), contentAlignment = Alignment.Center) {
+        Canvas(
+            modifier = Modifier
+                .size(250.dp)
+                .aspectRatio(1f)
+                .graphicsLayer { rotationZ = rotation }
+        ) {
+            segments.forEachIndexed { index, segment ->
+                drawArc(
+                    color = colors[index],
+                    startAngle = (segment.startAngle - 90.0).toFloat(),
+                    sweepAngle = segment.sweepAngle.toFloat(),
+                    useCenter = true
+                )
+                drawArc(
+                    color = Color.White.copy(alpha = 0.85f),
+                    startAngle = (segment.startAngle - 90.0).toFloat(),
+                    sweepAngle = segment.sweepAngle.toFloat(),
+                    useCenter = true,
+                    style = Stroke(width = 1.5.dp.toPx())
+                )
+                if (segment.sweepAngle >= 12.0 || segments.size == 1) {
+                    val angleRadians = (segment.centerAngle - 90.0) * PI / 180.0
+                    val radius = size.minDimension * 0.32f
+                    val x = center.x + cos(angleRadians).toFloat() * radius
+                    val y = center.y + sin(angleRadians).toFloat() * radius
+                    val paint = Paint().apply {
+                        color = labelColor.toArgb()
+                        textAlign = Paint.Align.CENTER
+                        textSize = 12.dp.toPx()
+                        isFakeBoldText = true
+                    }
+                    val title = segment.candidate.title.take(6)
+                    drawIntoCanvas { canvas ->
+                        canvas.nativeCanvas.drawText(title, x, y - 2.dp.toPx(), paint)
+                        paint.textSize = 10.dp.toPx()
+                        canvas.nativeCanvas.drawText(
+                            percentageText(segment.percentage), x, y + 12.dp.toPx(), paint
+                        )
+                    }
+                }
+            }
+        }
+        Icon(
+            Icons.Default.ArrowDropDown,
+            contentDescription = "转盘指针",
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .size(42.dp)
+        )
+        Button(
+            onClick = onDraw,
+            enabled = !isSpinning,
+            shape = CircleShape,
+            contentPadding = PaddingValues(0.dp),
+            modifier = Modifier.size(82.dp)
+        ) {
+            Text(if (isSpinning) "旋转中" else "抽一下", fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+/** 图例始终展示完整名称和精确占比，弥补极小扇区无法容纳文字的限制。 */
+@Composable
+private fun WheelLegend(segments: List<WheelSegment>) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        segments.forEach { segment ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    color = categoryColor(segment.candidate.category),
+                    shape = CircleShape,
+                    modifier = Modifier.size(10.dp)
+                ) {}
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "${segment.candidate.title} · 权重 ${segment.candidate.weight} · ${percentageText(segment.percentage)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+private fun percentageText(value: Double): String = String.format(Locale.ROOT, "%.1f%%", value)
+
+private fun categoryColor(category: EventCategory): Color = when (category) {
+    EventCategory.WORK -> Color(0xFF2563EB)
+    EventCategory.STUDY -> Color(0xFF7C3AED)
+    EventCategory.HIGH_QUALITY_ENTERTAINMENT -> Color(0xFF059669)
+    EventCategory.LOW_QUALITY_ENTERTAINMENT -> Color(0xFFD97706)
+    EventCategory.SOCIAL -> Color(0xFFDB2777)
+    EventCategory.OTHER -> Color(0xFF64748B)
 }
 
 /**
@@ -863,6 +1033,7 @@ private fun EventPoolManagerDialog(
     onSetEnabled: (String, Boolean) -> Unit,
     onDelete: (EventPoolItemEntity) -> Unit
 ) {
+    val enabledWeight = state.poolItems.filter { it.isEnabled }.sumOf { it.weight }
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -918,7 +1089,19 @@ private fun EventPoolManagerDialog(
                         ) {
                             Column(Modifier.weight(1f)) {
                                 Text(item.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
-                                Text(item.category.displayName, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                val share = if (item.isEnabled && enabledWeight > 0) {
+                                    100.0 * item.weight / enabledWeight
+                                } else {
+                                    0.0
+                                }
+                                Text(
+                                    if (item.isEnabled) {
+                                        "${item.category.displayName} · 权重 ${item.weight} · ${percentageText(share)}"
+                                    } else {
+                                        "${item.category.displayName} · 权重 ${item.weight} · 未参与"
+                                    },
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                             Switch(
                                 checked = item.isEnabled,
@@ -945,13 +1128,20 @@ private fun EventPoolManagerDialog(
 fun PoolItemEditorDialog(
     item: EventPoolItemEntity?,
     suggestions: List<String>,
-    onSave: (String?, String, EventCategory, Boolean) -> Unit,
+    poolItems: List<EventPoolItemEntity>,
+    onSave: (String?, String, EventCategory, Int, Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     var title by rememberSaveable(item?.id) { mutableStateOf(item?.title.orEmpty()) }
     var category by remember(item?.id) { mutableStateOf(item?.category ?: EventCategory.WORK) }
     var enabled by rememberSaveable(item?.id) { mutableStateOf(item?.isEnabled ?: true) }
+    var weight by rememberSaveable(item?.id) { mutableStateOf(item?.weight ?: 1) }
     val titleValid = title.isNotBlank()
+    val otherEnabledWeight = poolItems
+        .filter { it.isEnabled && it.id != item?.id }
+        .sumOf { it.weight }
+    val enabledWeight = otherEnabledWeight + if (enabled) weight else 0
+    val currentShare = if (enabled && enabledWeight > 0) 100.0 * weight / enabledWeight else 0.0
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -987,6 +1177,29 @@ fun PoolItemEditorDialog(
                         label = { Text(option.displayName) }
                     )
                 }
+                Text("权重")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    IconButton(onClick = { weight-- }, enabled = weight > 1) {
+                        Icon(Icons.Default.Remove, contentDescription = "减少权重")
+                    }
+                    Text(
+                        weight.toString(),
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier = Modifier.padding(horizontal = 18.dp)
+                    )
+                    IconButton(onClick = { weight++ }, enabled = weight < 100) {
+                        Icon(Icons.Default.Add, contentDescription = "增加权重")
+                    }
+                }
+                Text(
+                    if (enabled) "权重 $weight · 占 ${percentageText(currentShare)}" else "权重 $weight · 当前停用，不参与抽取",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("启用", Modifier.weight(1f))
                     Switch(checked = enabled, onCheckedChange = { enabled = it })
@@ -995,7 +1208,7 @@ fun PoolItemEditorDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { onSave(item?.id, title, category, enabled) },
+                onClick = { onSave(item?.id, title, category, weight, enabled) },
                 enabled = titleValid
             ) { Text("保存") }
         },

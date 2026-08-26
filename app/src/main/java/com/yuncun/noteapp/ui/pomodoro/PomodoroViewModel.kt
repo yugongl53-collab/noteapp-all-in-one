@@ -28,6 +28,7 @@ data class PomodoroUiState(
     val poolItems: List<EventPoolItemEntity> = emptyList(),
     val poolNameSuggestions: List<String> = emptyList(),
     val selectedCandidate: EventPoolCandidate? = null,
+    val drawVersion: Long = 0,
     val settings: AppSettings = AppSettings(),
     val session: PomodoroSession? = null,
     val remainingSeconds: Long = 0,
@@ -41,7 +42,7 @@ class PomodoroViewModel(
     private val poolRepository: EventPoolRepository,
     private val coordinator: PomodoroCoordinator,
     private val clock: () -> Instant = Instant::now,
-    private val nextIndex: (Int) -> Int = { Random.nextInt(it) }
+    private val nextWeightUnit: (Long) -> Long = { Random.nextLong(it) }
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(PomodoroUiState())
     val uiState: StateFlow<PomodoroUiState> = _uiState.asStateFlow()
@@ -69,9 +70,9 @@ class PomodoroViewModel(
         }
     }
 
-    fun savePoolItem(id: String?, title: String, category: EventCategory, isEnabled: Boolean) =
+    fun savePoolItem(id: String?, title: String, category: EventCategory, weight: Int, isEnabled: Boolean) =
         runPoolOperation("事件池项目已保存") {
-            poolRepository.save(id, title, category, isEnabled, clock())
+            poolRepository.save(id, title, category, isEnabled, weight, clock())
         }
 
     fun setPoolItemEnabled(id: String, enabled: Boolean) = runPoolOperation(
@@ -87,10 +88,11 @@ class PomodoroViewModel(
 
     fun draw() {
         val candidates = _uiState.value.poolItems.map(EventPoolItemEntity::toCandidate)
-        val selected = EventPoolRules.draw(candidates, nextIndex)
+        val selected = EventPoolRules.draw(candidates, nextWeightUnit)
         _uiState.update {
             it.copy(
                 selectedCandidate = selected,
+                drawVersion = it.drawVersion + if (selected == null) 0 else 1,
                 feedback = if (selected == null) "没有启用项目，请先添加或启用一项" else null
             )
         }
@@ -197,4 +199,4 @@ class PomodoroViewModel(
     }
 }
 
-private fun EventPoolItemEntity.toCandidate() = EventPoolCandidate(id, title, category, isEnabled)
+private fun EventPoolItemEntity.toCandidate() = EventPoolCandidate(id, title, category, isEnabled, weight)
