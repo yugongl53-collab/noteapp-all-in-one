@@ -28,20 +28,29 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/** 验证 M3 空状态、双视图入口、无学期边界与重叠确认回调。 */
+/** 验证日程三视图、顶部时期入口、无学期边界与重叠确认回调。 */
 class ScheduleScreensInstrumentedTest {
     @get:Rule
     val composeRule = createComposeRule()
 
     @Test
-    fun timetableEmptyState_keepsSevenDayGridAndManagementEntries() {
+    fun timetableEmptyState_keepsSevenDayGridAndScheduleManagementEntries() {
         composeRule.setContent { NoteAppTheme { scheduleScreen() } }
 
         composeRule.onNodeWithText("课表").assertIsDisplayed()
         composeRule.onAllNodesWithText("无事件").fetchSemanticsNodes().let { assertEquals(7, it.size) }
         composeRule.onNodeWithText("普通事件").assertIsDisplayed()
         composeRule.onNodeWithText("课程").assertIsDisplayed()
-        composeRule.onNodeWithText("学期").assertIsDisplayed()
+        composeRule.onNodeWithText("未设置学期").assertIsDisplayed()
+    }
+
+    @Test
+    fun currentPeriodButton_opensTermSettingsInsteadOfUsingPeerManagementEntry() {
+        composeRule.setContent { NoteAppTheme { scheduleScreen(currentPeriodLabel = "2026-2027秋季学期 · 第3周") } }
+
+        composeRule.onNodeWithText("2026-2027秋季学期 · 第3周").performClick()
+
+        composeRule.onNodeWithText("学期设置").assertIsDisplayed()
     }
 
     @Test
@@ -52,6 +61,16 @@ class ScheduleScreensInstrumentedTest {
         composeRule.onNodeWithText("事件流").performClick()
 
         assertEquals(ScheduleViewMode.EVENT_STREAM, selected)
+    }
+
+    @Test
+    fun statisticsTab_forwardsIntegratedViewSelection() {
+        var selected: ScheduleViewMode? = null
+        composeRule.setContent { NoteAppTheme { scheduleScreen(onSelectView = { selected = it }) } }
+
+        composeRule.onNodeWithText("时间统计").performClick()
+
+        assertEquals(ScheduleViewMode.STATISTICS, selected)
     }
 
     @Test
@@ -147,9 +166,16 @@ class ScheduleScreensInstrumentedTest {
     }
 
     @androidx.compose.runtime.Composable
-    private fun scheduleScreen(onSelectView: (ScheduleViewMode) -> Unit = {}) {
+    private fun scheduleScreen(
+        currentPeriodLabel: String = "未设置学期",
+        onSelectView: (ScheduleViewMode) -> Unit = {}
+    ) {
         ScheduleScreen(
-            state = ScheduleUiState(isLoading = false, selectedWeek = LocalDate.parse("2026-08-24")),
+            state = ScheduleUiState(
+                isLoading = false,
+                selectedWeek = LocalDate.parse("2026-08-24"),
+                currentPeriodLabel = currentPeriodLabel
+            ),
             onSelectView = onSelectView,
             onPreviousWeek = {}, onNextWeek = {}, onCurrentWeek = {},
             onSaveTerm = { _, _ -> }, onDeleteTerm = {},

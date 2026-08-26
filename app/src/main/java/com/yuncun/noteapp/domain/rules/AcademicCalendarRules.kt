@@ -21,6 +21,16 @@ object AcademicCalendarRules {
     fun actualWeekCount(term: TermPeriod): Int =
         requireNotNull(termWeek(term, term.endDate))
 
+    /** 顶部时期按钮始终描述设备当天，不受用户正在浏览的周次影响。 */
+    fun currentPeriodLabel(date: LocalDate, terms: List<TermPeriod>): String {
+        val currentTerm = terms.firstOrNull { date in it.startDate..it.endDate }
+        if (currentTerm != null) {
+            val week = requireNotNull(termWeek(currentTerm, date))
+            return "${currentTerm.displayName} · 第${week}周"
+        }
+        return labelForDate(date, terms)?.let { "${it}中" } ?: "未设置学期"
+    }
+
     fun labelForDate(date: LocalDate, terms: List<TermPeriod>): String? {
         val sortedTerms = terms.sortedBy { it.startDate }
         sortedTerms.firstOrNull { date in it.startDate..it.endDate }?.let { return it.displayName }
