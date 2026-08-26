@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.yuncun.noteapp.data.repository.ScheduleTaskInput
@@ -365,6 +366,53 @@ class ScheduleScreensInstrumentedTest {
         // 取消不触发删除
         composeRule.onNodeWithText("取消").performClick()
         assertFalse(deleted)
+    }
+
+    @Test
+    fun weekControls_rendersDateRangeAndNavigationButtonsWithoutDuplicateSemesterLabel() {
+        var previousClicked = false
+        var nextClicked = false
+        var currentClicked = false
+
+        composeRule.setContent {
+            NoteAppTheme {
+                ScheduleScreen(
+                    state = ScheduleUiState(
+                        isLoading = false,
+                        selectedWeek = LocalDate.parse("2026-08-24"),
+                        currentPeriodLabel = "2026-2027秋季学期 · 第1周"
+                    ),
+                    onSelectView = {},
+                    onPreviousWeek = { previousClicked = true },
+                    onNextWeek = { nextClicked = true },
+                    onCurrentWeek = { currentClicked = true },
+                    onSaveTerm = { _, _ -> }, onDeleteTerm = {},
+                    onSaveTask = { _, _ -> }, onDeleteTask = {},
+                    onSaveCourse = { _, _ -> }, onDeleteCourse = {},
+                    onConfirmOverlap = {}, onCancelOverlap = {}
+                )
+            }
+        }
+
+        // 顶部常驻状态栏正常展示
+        composeRule.onNodeWithText("2026-2027秋季学期 · 第1周").assertIsDisplayed()
+
+        // 周控制栏展示日期范围与导航按钮
+        composeRule.onNodeWithText("8.24—8.30").assertIsDisplayed()
+        composeRule.onNodeWithText("本周").assertIsDisplayed()
+
+        // 验证周切换交互
+        composeRule.onNodeWithContentDescription("上一周").performClick()
+        assertTrue(previousClicked)
+
+        composeRule.onNodeWithContentDescription("下一周").performClick()
+        assertTrue(nextClicked)
+
+        composeRule.onNodeWithText("本周").performClick()
+        assertTrue(currentClicked)
+
+        // 验证学期信息只在顶部状态栏出现 1 次，WeekControls 中无重复文本
+        assertEquals(1, composeRule.onAllNodesWithText("2026-2027秋季学期 · 第1周").fetchSemanticsNodes().size)
     }
 
     @androidx.compose.runtime.Composable

@@ -319,18 +319,15 @@ private fun WeekControls(
 ) {
     val monday = state.selectedWeek
     val sunday = monday.plusDays(6)
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onPrevious) { Icon(Icons.Default.ChevronLeft, "上一周") }
-            Text("${weekDateFormatter.format(monday)}—${weekDateFormatter.format(sunday)}", style = MaterialTheme.typography.titleMedium)
-            IconButton(onClick = onNext) { Icon(Icons.Default.ChevronRight, "下一周") }
-            Spacer(Modifier.weight(1f))
-            Button(onClick = onCurrent) { Text("本周") }
-        }
-        Text(
-            state.weekLabels.ifEmpty { listOf("尚未设置学期") }.joinToString(" · "),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onPrevious) { Icon(Icons.Default.ChevronLeft, "上一周") }
+        Text("${weekDateFormatter.format(monday)}—${weekDateFormatter.format(sunday)}", style = MaterialTheme.typography.titleMedium)
+        IconButton(onClick = onNext) { Icon(Icons.Default.ChevronRight, "下一周") }
+        Spacer(Modifier.weight(1f))
+        Button(onClick = onCurrent) { Text("本周") }
     }
 }
 
