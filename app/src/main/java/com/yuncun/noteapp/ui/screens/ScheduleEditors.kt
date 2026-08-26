@@ -42,6 +42,7 @@ import com.yuncun.noteapp.domain.model.ScheduleInstance
 import com.yuncun.noteapp.domain.model.ScheduleSource
 import com.yuncun.noteapp.domain.model.ScheduleType
 import com.yuncun.noteapp.domain.model.TermSeason
+import com.yuncun.noteapp.domain.rules.ScheduleViewRules
 import com.yuncun.noteapp.reminder.ReminderPermissionState
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -195,7 +196,10 @@ fun TaskEditorDialog(
     var category by remember(entity?.id) { mutableStateOf(entity?.category ?: EventCategory.WORK) }
     var type by remember(entity?.id) { mutableStateOf(entity?.type ?: ScheduleType.ONE_OFF) }
     var weekdays by remember(entity?.id) { mutableStateOf(entity?.weekdays ?: setOf(DayOfWeek.MONDAY)) }
-    var dateInput by remember(entity?.id) { mutableStateOf((entity?.date ?: entity?.effectiveFrom ?: LocalDate.now()).toString()) }
+    var dateInput by remember(entity?.id) {
+        val initialDate = entity?.date ?: entity?.effectiveFrom ?: LocalDate.now()
+        mutableStateOf(ScheduleViewRules.formatTaskDate(initialDate))
+    }
     var startTime by remember(entity?.id) { mutableStateOf(entity?.startTime?.toString() ?: "09:00") }
     var endTime by remember(entity?.id) { mutableStateOf(entity?.endTime?.toString() ?: "10:00") }
     var enabled by remember(entity?.id) { mutableStateOf(entity?.isEnabled ?: true) }
@@ -217,7 +221,7 @@ fun TaskEditorDialog(
         if (type == ScheduleType.WEEKLY) WeekdaySelector(weekdays) { weekdays = it }
         OutlinedTextField(
             dateInput, { dateInput = it; error = null },
-            label = { Text(if (type == ScheduleType.WEEKLY) "生效日期 YYYY-MM-DD" else "事件日期 YYYY-MM-DD") },
+            label = { Text(if (type == ScheduleType.WEEKLY) "生效日期 MM-DD" else "事件日期 MM-DD") },
             modifier = Modifier.fillMaxWidth()
         )
         TimeFields(startTime, { startTime = it }, endTime, { endTime = it })
@@ -228,7 +232,8 @@ fun TaskEditorDialog(
         FormError(error)
         Button(onClick = {
             runCatching {
-                val date = LocalDate.parse(dateInput)
+                val baseYear = entity?.date?.year ?: entity?.effectiveFrom?.year ?: LocalDate.now().year
+                val date = ScheduleViewRules.parseTaskDate(dateInput, baseYear)
                 require(title.isNotBlank()) { "事件名称不能为空" }
                 ScheduleTaskInput(
                     title, category, type,

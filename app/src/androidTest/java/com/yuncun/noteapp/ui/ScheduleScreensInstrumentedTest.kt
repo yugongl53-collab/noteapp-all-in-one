@@ -247,7 +247,40 @@ class ScheduleScreensInstrumentedTest {
 
         composeRule.onNodeWithText("单次").assertIsDisplayed()
         composeRule.onNodeWithText("每周").assertIsDisplayed()
-        composeRule.onNodeWithText("事件日期 YYYY-MM-DD").assertIsDisplayed()
+        composeRule.onNodeWithText("事件日期 MM-DD").assertIsDisplayed()
+        composeRule.onNodeWithText("每周").performClick()
+        composeRule.onNodeWithText("生效日期 MM-DD").assertIsDisplayed()
+    }
+
+    @Test
+    fun taskEditorDialog_editsExistingTaskWithPreservedYear() {
+        var savedInput: ScheduleTaskInput? = null
+        val existingTask = ScheduleTaskEntity(
+            id = "task-2025",
+            title = "既有事件",
+            category = EventCategory.WORK,
+            type = ScheduleType.ONE_OFF,
+            weekdays = emptySet(),
+            effectiveFrom = null,
+            date = LocalDate.of(2025, 5, 20),
+            startTime = LocalTime.of(14, 0),
+            endTime = LocalTime.of(15, 0),
+            isEnabled = true,
+            reminderEnabled = false,
+            reminderAdvanceMinutes = null,
+            createdAt = Instant.parse("2025-05-01T00:00:00Z"),
+            updatedAt = Instant.parse("2025-05-01T00:00:00Z")
+        )
+        composeRule.setContent {
+            NoteAppTheme {
+                TaskEditorDialog(existingTask, emptyList(), { _, input -> savedInput = input }, {})
+            }
+        }
+
+        composeRule.onNodeWithText("保存").performClick()
+
+        assertEquals("既有事件", savedInput?.title)
+        assertEquals(LocalDate.of(2025, 5, 20), savedInput?.date)
     }
 
     @Test

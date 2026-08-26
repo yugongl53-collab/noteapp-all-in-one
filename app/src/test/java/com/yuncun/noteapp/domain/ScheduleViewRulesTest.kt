@@ -91,6 +91,53 @@ class ScheduleViewRulesTest {
         assertTrue(ScheduleViewRules.chunkEventStream(emptyList()).isEmpty())
     }
 
+    @Test
+    fun formatTaskDate_formatsLocalDateAsMMDD() {
+        assertEquals("08-26", ScheduleViewRules.formatTaskDate(LocalDate.of(2026, 8, 26)))
+        assertEquals("01-05", ScheduleViewRules.formatTaskDate(LocalDate.of(2026, 1, 5)))
+    }
+
+    @Test
+    fun parseTaskDate_parsesValidMonthDayWithTargetYear() {
+        assertEquals(LocalDate.of(2026, 8, 26), ScheduleViewRules.parseTaskDate("08-26", 2026))
+        assertEquals(LocalDate.of(2025, 8, 5), ScheduleViewRules.parseTaskDate("8-5", 2025))
+        assertEquals(LocalDate.of(2026, 12, 31), ScheduleViewRules.parseTaskDate("  12-31  ", 2026))
+        assertEquals(LocalDate.of(2024, 2, 29), ScheduleViewRules.parseTaskDate("02-29", 2024))
+    }
+
+    @Test
+    fun parseTaskDate_rejectsInvalidFormats() {
+        listOf("2026-08-26", "abc", "", "08", "08-26-01", "08-", "-26", "08/26").forEach { invalid ->
+            val error = runCatching { ScheduleViewRules.parseTaskDate(invalid, 2026) }.exceptionOrNull()
+            assertTrue("Expected format error for: $invalid", error is IllegalArgumentException)
+            assertEquals("请填写 MM-DD 格式日期（如 08-26）", error?.message)
+        }
+    }
+
+    @Test
+    fun parseTaskDate_rejectsOutOfRangeMonth() {
+        listOf("00-15", "13-01").forEach { invalid ->
+            val error = runCatching { ScheduleViewRules.parseTaskDate(invalid, 2026) }.exceptionOrNull()
+            assertTrue("Expected month error for: $invalid", error is IllegalArgumentException)
+            assertEquals("月份超出有效范围（01-12）", error?.message)
+        }
+    }
+
+    @Test
+    fun parseTaskDate_rejectsInvalidDaysForMonthOrLeapYear() {
+        listOf(
+            "02-29" to 2026, // 2026 非闰年
+            "02-30" to 2026,
+            "04-31" to 2026, // 4月只有30天
+            "08-00" to 2026,
+            "08-32" to 2026
+        ).forEach { (dateStr, year) ->
+            val error = runCatching { ScheduleViewRules.parseTaskDate(dateStr, year) }.exceptionOrNull()
+            assertTrue("Expected invalid day error for: $dateStr in $year", error is IllegalArgumentException)
+            assertEquals("日期无效，请检查大小月或闰年天数", error?.message)
+        }
+    }
+
     private fun instance(id: String, title: String, start: String, end: String) = ScheduleInstance(
         sourceId = id,
         source = ScheduleSource.TASK,

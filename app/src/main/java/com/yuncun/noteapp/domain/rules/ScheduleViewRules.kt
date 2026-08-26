@@ -69,4 +69,36 @@ object ScheduleViewRules {
             .map { it.first.trim() }
             .filter { it.isNotEmpty() }
             .distinct()
+
+    private val taskDateFormatter: java.time.format.DateTimeFormatter =
+        java.time.format.DateTimeFormatter.ofPattern("MM-dd")
+
+    /** 将当地日期格式化为月日格式（MM-DD）。 */
+    fun formatTaskDate(date: LocalDate): String = date.format(taskDateFormatter)
+
+    /**
+     * 解析月日格式字符串并与指定年份拼接为完整 LocalDate。
+     * 严格校验输入格式（MM-DD 或 M-D）、月份范围（01-12）以及大小月与闰年合法天数。
+     */
+    fun parseTaskDate(input: String, year: Int): LocalDate {
+        val trimmed = input.trim()
+        val parts = trimmed.split("-")
+        require(
+            parts.size == 2 &&
+                parts[0].length in 1..2 && parts[0].all { it.isDigit() } &&
+                parts[1].length in 1..2 && parts[1].all { it.isDigit() }
+        ) {
+            "请填写 MM-DD 格式日期（如 08-26）"
+        }
+        val month = parts[0].toInt()
+        val day = parts[1].toInt()
+        require(month in 1..12) {
+            "月份超出有效范围（01-12）"
+        }
+        return runCatching {
+            LocalDate.of(year, month, day)
+        }.getOrElse {
+            throw IllegalArgumentException("日期无效，请检查大小月或闰年天数")
+        }
+    }
 }
