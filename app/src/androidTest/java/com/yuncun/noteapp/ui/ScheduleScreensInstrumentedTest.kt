@@ -81,7 +81,7 @@ class ScheduleScreensInstrumentedTest {
             }
         }
 
-        composeRule.onNodeWithText("尚未设置学期，请先关闭表单并前往“学期”设置。").assertIsDisplayed()
+        composeRule.onNodeWithText("尚未设置学期，请先关闭表单并点击顶部时期状态按钮。").assertIsDisplayed()
         composeRule.onNodeWithText("保存").assertIsNotEnabled()
     }
 

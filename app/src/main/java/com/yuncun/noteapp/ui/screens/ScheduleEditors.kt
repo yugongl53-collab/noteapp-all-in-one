@@ -268,7 +268,7 @@ fun CourseEditorDialog(
     var error by remember(entity?.id) { mutableStateOf<String?>(null) }
     EditorDialog(entity?.let { "编辑课程" } ?: "新增课程", onDismiss) {
         if (terms.isEmpty()) {
-            Text("尚未设置学期，请先关闭表单并前往“学期”设置。", color = MaterialTheme.colorScheme.error)
+            Text("尚未设置学期，请先关闭表单并点击顶部时期状态按钮。", color = MaterialTheme.colorScheme.error)
         } else {
             Text("所属学期")
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
