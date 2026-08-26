@@ -226,6 +226,33 @@ class ScheduleViewModelTest {
         assertEquals("课程已删除", viewModel.uiState.value.feedback)
     }
 
+    @Test
+    fun saveTask_synchronizesSettlement() = runTest(dispatcher) {
+        val repository = FakeScheduleRepository()
+        var settlementSyncCount = 0
+        val fakeSettlement = object : com.yuncun.noteapp.settlement.ScheduleSettlementCoordinator {
+            override suspend fun synchronize(): com.yuncun.noteapp.settlement.SettlementSyncResult {
+                settlementSyncCount++
+                return com.yuncun.noteapp.settlement.SettlementSyncResult()
+            }
+        }
+        val viewModel = ScheduleViewModel(
+            repository = repository,
+            reminderCoordinator = FakeReminderCoordinator(),
+            settlementCoordinator = fakeSettlement,
+            clock = { now },
+            zoneId = ZoneId.of("Asia/Shanghai"),
+            today = { LocalDate.parse("2026-08-25") }
+        )
+        advanceUntilIdle()
+
+        viewModel.saveTask(null, input("临时研讨", LocalTime.of(14, 0)))
+        advanceUntilIdle()
+
+        assertEquals(1, settlementSyncCount)
+        assertEquals("普通事件已保存", viewModel.uiState.value.feedback)
+    }
+
     private fun viewModel(
         repository: ScheduleRepository,
         reminders: ReminderCoordinator = FakeReminderCoordinator()

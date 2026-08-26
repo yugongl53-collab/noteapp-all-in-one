@@ -63,6 +63,7 @@ private sealed interface PendingSave {
 class ScheduleViewModel(
     private val repository: ScheduleRepository,
     private val reminderCoordinator: ReminderCoordinator = NoOpReminderCoordinator,
+    private val settlementCoordinator: com.yuncun.noteapp.settlement.ScheduleSettlementCoordinator = com.yuncun.noteapp.settlement.NoOpScheduleSettlementCoordinator,
     private val clock: () -> Instant = Instant::now,
     private val zoneId: ZoneId = ZoneId.systemDefault(),
     private val today: () -> LocalDate = { LocalDate.now(zoneId) }
@@ -191,6 +192,7 @@ class ScheduleViewModel(
         viewModelScope.launch {
             runCatching {
                 action()
+                settlementCoordinator.synchronize()
                 val snapshot = repository.load()
                 snapshot to reminderCoordinator.synchronize()
             }.onSuccess { (snapshot, reminderResult) ->
@@ -263,12 +265,13 @@ class ScheduleViewModel(
 
     class Factory(
         private val repository: ScheduleRepository,
-        private val reminderCoordinator: ReminderCoordinator = NoOpReminderCoordinator
+        private val reminderCoordinator: ReminderCoordinator = NoOpReminderCoordinator,
+        private val settlementCoordinator: com.yuncun.noteapp.settlement.ScheduleSettlementCoordinator = com.yuncun.noteapp.settlement.NoOpScheduleSettlementCoordinator
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(ScheduleViewModel::class.java)) { "不支持的 ViewModel 类型" }
-            return ScheduleViewModel(repository, reminderCoordinator) as T
+            return ScheduleViewModel(repository, reminderCoordinator, settlementCoordinator) as T
         }
     }
 }

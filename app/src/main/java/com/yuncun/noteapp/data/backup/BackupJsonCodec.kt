@@ -149,7 +149,7 @@ class BackupJsonCodec {
             validateIdentityAndTimestamps(record.id, record.createdAt, record.updatedAt)
             EntityValidation.requireSelectableCategory(record.category)
             require(record.title == EntityValidation.requiredText(record.title, "活动名称")) { "活动名称必须已规范化" }
-            require(record.source == "manual") { "时间记录来源只能是 manual" }
+            require(record.source == "manual" || record.source == "schedule") { "时间记录来源只能是 manual 或 schedule" }
             require(record.startAt == record.startAt.truncatedTo(ChronoUnit.MINUTES) &&
                 record.endAt == record.endAt.truncatedTo(ChronoUnit.MINUTES)) { "时间记录必须精确到分钟" }
             TimeRecordRules.validateRange(record.startAt, record.endAt)

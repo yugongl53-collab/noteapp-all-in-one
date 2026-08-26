@@ -20,7 +20,9 @@ abstract class TimeRecordDao {
         EntityValidation.requireId(entity.id)
         EntityValidation.requireTimestamps(entity.createdAt, entity.updatedAt)
         EntityValidation.requireSelectableCategory(entity.category)
-        require(entity.source == "manual") { "时间记录来源只能是 manual" }
+        require(entity.source == "manual" || entity.source == "schedule") {
+            "时间记录来源只能是 manual 或 schedule"
+        }
         val startAt = entity.startAt.truncatedTo(ChronoUnit.MINUTES)
         val endAt = entity.endAt.truncatedTo(ChronoUnit.MINUTES)
         TimeRecordRules.validateRange(startAt, endAt)
@@ -32,6 +34,27 @@ abstract class TimeRecordDao {
         )
         if (findById(entity.id) == null) insertInternal(normalized) else updateInternal(normalized)
         return entity.id
+    }
+
+    /** 自动结算插入：若记录已存在或与既有记录重叠则静默跳过，避免中断整体结算。 */
+    @Transaction
+    open suspend fun insertAutoSettlement(entity: TimeRecordEntity): Boolean {
+        EntityValidation.requireId(entity.id)
+        EntityValidation.requireTimestamps(entity.createdAt, entity.updatedAt)
+        EntityValidation.requireSelectableCategory(entity.category)
+        require(entity.source == "schedule") { "自动结算来源必须是 schedule" }
+        val startAt = entity.startAt.truncatedTo(ChronoUnit.MINUTES)
+        val endAt = entity.endAt.truncatedTo(ChronoUnit.MINUTES)
+        TimeRecordRules.validateRange(startAt, endAt)
+        if (findById(entity.id) != null) return false
+        if (findOverlap(startAt, endAt, entity.id) != null) return false
+        val normalized = entity.copy(
+            title = EntityValidation.requiredText(entity.title, "活动名称"),
+            startAt = startAt,
+            endAt = endAt
+        )
+        insertInternal(normalized)
+        return true
     }
 
     @Query("SELECT * FROM time_records ORDER BY startAt DESC, id ASC")
