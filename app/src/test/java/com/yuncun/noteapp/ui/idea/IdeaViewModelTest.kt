@@ -50,50 +50,70 @@ class IdeaViewModelTest {
     }
 
     @Test
-    fun saveQuickIdea_successClearsDraftAndRefreshesList() = runTest(dispatcher) {
+    fun saveEditor_createsNewIdeaAndRefreshesList() = runTest(dispatcher) {
         val repository = FakeIdeaRepository()
         val viewModel = IdeaViewModel(repository, clock = { now })
         advanceUntilIdle()
-        viewModel.updateQuickContent("  新想法  ")
-        viewModel.updateQuickTags("学习，学习")
+        viewModel.prepareEditor(null)
+        viewModel.updateEditorContent("  新想法  ")
+        viewModel.updateEditorTags("学习，学习")
 
-        viewModel.saveQuickIdea()
+        viewModel.saveEditor()
         advanceUntilIdle()
 
-        assertEquals("", viewModel.quickDraft.value.content)
         assertEquals(listOf("新想法"), viewModel.uiState.value.activeIdeas.map { it.content })
         assertEquals(listOf("学习"), viewModel.uiState.value.activeIdeas.single().tags)
+        assertEquals("灵感已保存", viewModel.uiState.value.feedback)
+        assertEquals(1L, viewModel.uiState.value.saveCompletedVersion)
+    }
+
+    @Test
+    fun saveEditor_updatesExistingIdeaAndRefreshesList() = runTest(dispatcher) {
+        val repository = FakeIdeaRepository()
+        repository.active += IdeaEntity("idea-1", "旧内容", listOf("旧标签"), now, now, null)
+        val viewModel = IdeaViewModel(repository, clock = { now })
+        advanceUntilIdle()
+
+        viewModel.prepareEditor("idea-1")
+        assertEquals("旧内容", viewModel.editorDraft.value.content)
+        viewModel.updateEditorContent("更新后的内容")
+        viewModel.saveEditor()
+        advanceUntilIdle()
+
+        assertEquals(listOf("更新后的内容"), viewModel.uiState.value.activeIdeas.map { it.content })
         assertEquals("灵感已保存", viewModel.uiState.value.feedback)
     }
 
     @Test
-    fun saveQuickIdea_validationFailureKeepsInputAndShowsFieldError() = runTest(dispatcher) {
+    fun saveEditor_validationFailureKeepsInputAndShowsFieldError() = runTest(dispatcher) {
         val repository = FakeIdeaRepository()
         val viewModel = IdeaViewModel(repository, clock = { now })
         advanceUntilIdle()
-        viewModel.updateQuickContent("   ")
-        viewModel.updateQuickTags("待办")
+        viewModel.prepareEditor(null)
+        viewModel.updateEditorContent("   ")
+        viewModel.updateEditorTags("待办")
 
-        viewModel.saveQuickIdea()
+        viewModel.saveEditor()
         advanceUntilIdle()
 
-        assertEquals("   ", viewModel.quickDraft.value.content)
-        assertEquals("待办", viewModel.quickDraft.value.tagsInput)
-        assertEquals("灵感正文不能为空", viewModel.quickDraft.value.contentError)
+        assertEquals("   ", viewModel.editorDraft.value.content)
+        assertEquals("待办", viewModel.editorDraft.value.tagsInput)
+        assertEquals("灵感正文不能为空", viewModel.editorDraft.value.contentError)
         assertTrue(repository.active.isEmpty())
     }
 
     @Test
-    fun saveQuickIdea_persistenceFailureKeepsInputAndExplainsRetry() = runTest(dispatcher) {
+    fun saveEditor_persistenceFailureKeepsInputAndExplainsRetry() = runTest(dispatcher) {
         val repository = FakeIdeaRepository(saveFailure = IllegalStateException("磁盘不可用"))
         val viewModel = IdeaViewModel(repository, clock = { now })
         advanceUntilIdle()
-        viewModel.updateQuickContent("不能丢失")
+        viewModel.prepareEditor(null)
+        viewModel.updateEditorContent("不能丢失")
 
-        viewModel.saveQuickIdea()
+        viewModel.saveEditor()
         advanceUntilIdle()
 
-        assertEquals("不能丢失", viewModel.quickDraft.value.content)
+        assertEquals("不能丢失", viewModel.editorDraft.value.content)
         assertEquals("保存失败，请重试：磁盘不可用", viewModel.uiState.value.feedback)
     }
 

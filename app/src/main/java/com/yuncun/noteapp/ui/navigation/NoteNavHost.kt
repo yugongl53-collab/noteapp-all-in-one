@@ -70,7 +70,6 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
     val ideaFactory = remember(application) { IdeaViewModel.Factory(application.ideaRepository) }
     val ideaViewModel: IdeaViewModel = viewModel(factory = ideaFactory)
     val ideaState by ideaViewModel.uiState.collectAsState()
-    val quickDraft by ideaViewModel.quickDraft.collectAsState()
     val editorDraft by ideaViewModel.editorDraft.collectAsState()
     val scheduleFactory = remember(application) {
         ScheduleViewModel.Factory(
@@ -237,10 +236,6 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
                 composable(Screen.Idea.route) {
                     IdeaScreen(
                         state = ideaState,
-                        quickDraft = quickDraft,
-                        onQuickContentChange = ideaViewModel::updateQuickContent,
-                        onQuickTagsChange = ideaViewModel::updateQuickTags,
-                        onQuickSave = ideaViewModel::saveQuickIdea,
                         onAdd = { navController.navigate(IdeaRoutes.edit()) },
                         onEdit = { navController.navigate(IdeaRoutes.edit(it)) },
                         onOpenTrash = { navController.navigate(IdeaRoutes.TRASH) }

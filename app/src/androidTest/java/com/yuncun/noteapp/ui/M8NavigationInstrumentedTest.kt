@@ -23,7 +23,7 @@ class M8NavigationInstrumentedTest {
 
         // 切换到「灵感」
         composeRule.onNodeWithText("灵感").performClick()
-        composeRule.onNodeWithText("快速记录灵感").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("新增灵感").assertIsDisplayed()
 
         // 切换到「工具箱」
         composeRule.onNodeWithText("工具箱").performClick()
