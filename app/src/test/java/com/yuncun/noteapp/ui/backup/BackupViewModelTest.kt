@@ -49,7 +49,7 @@ class BackupViewModelTest {
 
         assertTrue(chosen)
         assertEquals("{}", written)
-        assertEquals("已导出到 backup.json", viewModel.uiState.value.feedback)
+        assertEquals("数据备份已成功导出", viewModel.uiState.value.feedback)
     }
 
     @Test
@@ -69,6 +69,7 @@ class BackupViewModelTest {
         assertTrue(operations.imported)
         assertTrue(refreshed)
         assertNull(viewModel.uiState.value.pendingImport)
+        assertEquals("数据已成功恢复并同步", viewModel.uiState.value.feedback)
     }
 
     @Test
@@ -80,7 +81,7 @@ class BackupViewModelTest {
         advanceUntilIdle()
 
         assertNull(viewModel.uiState.value.pendingImport)
-        assertTrue(viewModel.uiState.value.feedback?.contains("未知版本") == true)
+        assertEquals("文件格式不符合要求或已损坏，未能读取数据", viewModel.uiState.value.feedback)
     }
 
     private class FakeOperations(

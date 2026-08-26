@@ -2,10 +2,23 @@ package com.yuncun.noteapp.domain.model
 
 import java.time.Instant
 
-/** 番茄钟最近一次设置；默认值与产品规则保持一致。 */
+/** 外观主题模式：跟随系统、浅色模式、深色模式。 */
+enum class AppThemeMode(val stableId: String, val displayName: String) {
+    SYSTEM("system", "跟随系统"),
+    LIGHT("light", "浅色模式"),
+    DARK("dark", "深色模式");
+
+    companion object {
+        fun fromStableId(value: String): AppThemeMode =
+            entries.firstOrNull { it.stableId == value } ?: SYSTEM
+    }
+}
+
+/** 应用设置；包含专注/休息时长与外观主题模式偏好。 */
 data class AppSettings(
     val lastFocusMinutes: Int = 25,
-    val lastRestMinutes: Int = 5
+    val lastRestMinutes: Int = 5,
+    val themeMode: AppThemeMode = AppThemeMode.SYSTEM
 )
 
 enum class PomodoroPhase(val stableId: String) {

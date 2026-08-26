@@ -12,6 +12,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.AlertDialog
@@ -20,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,16 +33,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.yuncun.noteapp.R
+import com.yuncun.noteapp.domain.model.AppThemeMode
 import com.yuncun.noteapp.reminder.ReminderPermissionState
 import com.yuncun.noteapp.ui.backup.BackupUiState
 
-/** 设置页读取 Android 当前权限事实，并把备份风险与整体替换放在明确确认之后。 */
+/** 设置页提供外观主题切换、Android 系统权限状态与通俗化的数据备份恢复。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
+    currentThemeMode: AppThemeMode = AppThemeMode.SYSTEM,
+    onThemeModeChange: (AppThemeMode) -> Unit = {},
     reminderPermissions: ReminderPermissionState = ReminderPermissionState(),
     backupState: BackupUiState = BackupUiState(),
     onBack: (() -> Unit)? = null,
@@ -98,15 +107,46 @@ fun SettingsScreen(
                 }
             }
 
-            // 外观与主题
-            Text("外观与主题", style = MaterialTheme.typography.headlineSmall)
+            // 外观主题切换
+            Text("外观主题", style = MaterialTheme.typography.headlineSmall)
             Card(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("系统跟随模式", style = MaterialTheme.typography.titleMedium)
+                Column(
+                    modifier = Modifier
+                        .padding(14.dp)
+                        .selectableGroup(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    AppThemeMode.entries.forEach { mode ->
+                        val label = when (mode) {
+                            AppThemeMode.SYSTEM -> "📱 跟随系统"
+                            AppThemeMode.LIGHT -> "☀️ 浅色模式"
+                            AppThemeMode.DARK -> "🌙 深色模式"
+                        }
+                        val selected = currentThemeMode == mode
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .selectable(
+                                    selected = selected,
+                                    onClick = { onThemeModeChange(mode) },
+                                    role = Role.RadioButton
+                                )
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = selected,
+                                onClick = null
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = label, style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
                     Text(
-                        "应用已开启自动跟随系统浅色或深色主题，并在 Android 12+ 设备上自动适配系统壁纸动态取色。",
+                        text = "跟随系统模式下，Android 12+ 设备将自动适配系统壁纸动态取色。",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }
@@ -130,16 +170,16 @@ fun SettingsScreen(
                 actionLabel = "打开系统设置",
                 onAction = onOpenExactAlarmSettings
             )
-            Text("数据备份", style = MaterialTheme.typography.headlineSmall)
+            Text("数据备份与恢复", style = MaterialTheme.typography.headlineSmall)
             Text(
-                "手动导入、导出 UTF-8 明文 JSON。备份包含全部业务数据、回收站灵感和番茄钟时长设置，不包含活动计时或系统权限。",
+                "将您所有的笔记、日程、专注历史和统计记录打包保存为一个备份文件。该文件可以存放在手机或发送给其他设备，请妥善保管。",
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Button(onClick = onRequestExport, enabled = !backupState.isBusy, modifier = Modifier.fillMaxWidth()) {
-                Text("导出 JSON 备份")
+                Text("导出数据备份")
             }
             OutlinedButton(onClick = onChooseImportFile, enabled = !backupState.isBusy, modifier = Modifier.fillMaxWidth()) {
-                Text("导入 JSON 备份")
+                Text("从备份文件恢复数据")
             }
             if (backupState.isBusy) Text("正在处理，请稍候……")
         }
@@ -148,8 +188,8 @@ fun SettingsScreen(
     if (backupState.showExportWarning) {
         AlertDialog(
             onDismissRequest = onDismissExportWarning,
-            title = { Text("导出明文个人数据") },
-            text = { Text("JSON 文件可被直接读取，包含灵感、日程和时间记录等个人数据。请保存到可信位置并妥善保管。") },
+            title = { Text("导出数据备份") },
+            text = { Text("将您所有的笔记、日程、专注历史和统计记录打包保存为一个备份文件。该文件可以存放在手机或发送给其他设备，请妥善保管。") },
             confirmButton = { TextButton(onClick = onConfirmExportWarning) { Text("选择保存位置") } },
             dismissButton = { TextButton(onClick = onDismissExportWarning) { Text("取消") } }
         )
@@ -157,17 +197,18 @@ fun SettingsScreen(
     backupState.pendingImport?.let { summary ->
         AlertDialog(
             onDismissRequest = onDismissImportConfirmation,
-            title = { Text("替换全部现有数据？") },
+            title = { Text("确认恢复数据？") },
             text = {
                 Text(
-                    "文件：${summary.fileName}\n" +
-                        "灵感 ${summary.ideaCount}，普通事件 ${summary.scheduleCount}，学期 ${summary.termCount}，" +
-                        "课程 ${summary.courseCount}，事件池 ${summary.poolItemCount}，时间记录 ${summary.timeRecordCount}。\n" +
-                        "确认后将整体替换当前业务数据和设置，此操作无法撤销。"
+                    "从已有的备份文件中恢复数据。\n\n" +
+                        "备份文件：${summary.fileName}\n" +
+                        "包含：灵感笔记 ${summary.ideaCount} 条、日程事件 ${summary.scheduleCount} 项、学期 ${summary.termCount} 个、" +
+                        "课程 ${summary.courseCount} 门、决策池项目 ${summary.poolItemCount} 个、时间记录 ${summary.timeRecordCount} 条。\n\n" +
+                        "⚠️ 请注意：恢复数据将会覆盖并替换当前应用内的全部现有数据，此操作无法撤销。是否继续？"
                 )
             },
             confirmButton = {
-                TextButton(onClick = onConfirmImport, enabled = !backupState.isBusy) { Text("确认替换") }
+                TextButton(onClick = onConfirmImport, enabled = !backupState.isBusy) { Text("确认恢复") }
             },
             dismissButton = {
                 TextButton(onClick = onDismissImportConfirmation, enabled = !backupState.isBusy) { Text("取消") }

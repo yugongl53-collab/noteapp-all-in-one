@@ -15,14 +15,37 @@ import com.yuncun.noteapp.ui.screens.SettingsScreen
 import com.yuncun.noteapp.ui.backup.BackupUiState
 import com.yuncun.noteapp.data.backup.BackupSummary
 import com.yuncun.noteapp.ui.theme.NoteAppTheme
+import com.yuncun.noteapp.domain.model.AppThemeMode
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/** 验证提醒设置页展示系统事实，并只在用户点击后发起对应授权动作。 */
+/** 验证设置页展示系统事实、外观主题切换与通俗化数据备份恢复。 */
 class SettingsScreenInstrumentedTest {
     @get:Rule
     val composeRule = createComposeRule()
+
+    @Test
+    fun themeModeSelection_triggersCallback() {
+        var selectedMode: AppThemeMode? = null
+        composeRule.setContent {
+            NoteAppTheme {
+                SettingsScreen(
+                    currentThemeMode = AppThemeMode.SYSTEM,
+                    onThemeModeChange = { selectedMode = it }
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("外观主题").assertIsDisplayed()
+        composeRule.onNodeWithText("📱 跟随系统").assertIsDisplayed()
+        composeRule.onNodeWithText("☀️ 浅色模式").assertIsDisplayed()
+        composeRule.onNodeWithText("🌙 深色模式").assertIsDisplayed()
+
+        composeRule.onNodeWithText("🌙 深色模式").performClick()
+        assertEquals(AppThemeMode.DARK, selectedMode)
+    }
 
     @Test
     fun missingPermissions_showSeparateActions() {
@@ -58,7 +81,7 @@ class SettingsScreenInstrumentedTest {
             }
         }
 
-        composeRule.onNodeWithText("导出明文个人数据").assertIsDisplayed()
+        composeRule.onNodeWithText("导出数据备份").assertIsDisplayed()
         composeRule.onNodeWithText("选择保存位置").performClick()
         assertTrue(exportRequested)
     }
@@ -77,8 +100,8 @@ class SettingsScreenInstrumentedTest {
             }
         }
 
-        composeRule.onNodeWithText("替换全部现有数据？").assertIsDisplayed()
-        composeRule.onNodeWithText("确认替换").performClick()
+        composeRule.onNodeWithText("确认恢复数据？").assertIsDisplayed()
+        composeRule.onNodeWithText("确认恢复").performClick()
         assertTrue(importConfirmed)
     }
 
@@ -97,7 +120,7 @@ class SettingsScreenInstrumentedTest {
         }
 
         // 大字体与深色主题组合下，核心备份操作仍可通过滚动访问。
-        composeRule.onNodeWithText("导入 JSON 备份").performScrollTo().assertIsDisplayed().assertHasClickAction()
+        composeRule.onNodeWithText("从备份文件恢复数据").performScrollTo().assertIsDisplayed().assertHasClickAction()
         composeRule.onNodeWithContentDescription("返回").performClick()
         assertTrue(backRequested)
     }

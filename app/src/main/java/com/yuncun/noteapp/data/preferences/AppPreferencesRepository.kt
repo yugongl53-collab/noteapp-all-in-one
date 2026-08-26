@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.yuncun.noteapp.domain.model.AppThemeMode
 import com.yuncun.noteapp.domain.model.AppSettings
 import com.yuncun.noteapp.domain.model.PomodoroPhase
 import com.yuncun.noteapp.domain.model.PomodoroSession
@@ -20,7 +21,8 @@ class AppPreferencesRepository(private val dataStore: DataStore<Preferences>) : 
     override val settings: Flow<AppSettings> = dataStore.data.map { preferences ->
         AppSettings(
             lastFocusMinutes = preferences[Keys.lastFocusMinutes] ?: DEFAULT_FOCUS_MINUTES,
-            lastRestMinutes = preferences[Keys.lastRestMinutes] ?: DEFAULT_REST_MINUTES
+            lastRestMinutes = preferences[Keys.lastRestMinutes] ?: DEFAULT_REST_MINUTES,
+            themeMode = AppThemeMode.fromStableId(preferences[Keys.themeMode] ?: AppThemeMode.SYSTEM.stableId)
         )
     }
 
@@ -31,6 +33,14 @@ class AppPreferencesRepository(private val dataStore: DataStore<Preferences>) : 
         dataStore.edit { preferences ->
             preferences[Keys.lastFocusMinutes] = settings.lastFocusMinutes
             preferences[Keys.lastRestMinutes] = settings.lastRestMinutes
+            preferences[Keys.themeMode] = settings.themeMode.stableId
+        }
+    }
+
+    /** 更新外观主题偏好（跟随系统、浅色或深色）。 */
+    suspend fun setThemeMode(mode: AppThemeMode) {
+        dataStore.edit { preferences ->
+            preferences[Keys.themeMode] = mode.stableId
         }
     }
 
@@ -113,6 +123,7 @@ class AppPreferencesRepository(private val dataStore: DataStore<Preferences>) : 
     private object Keys {
         val lastFocusMinutes = intPreferencesKey("last_focus_minutes")
         val lastRestMinutes = intPreferencesKey("last_rest_minutes")
+        val themeMode = stringPreferencesKey("theme_mode")
         val sessionId = stringPreferencesKey("pomodoro_id")
         val sessionTitle = stringPreferencesKey("pomodoro_title")
         val sessionPhase = stringPreferencesKey("pomodoro_phase")

@@ -47,7 +47,7 @@ class AppPreferencesInstrumentedTest {
                 state = PomodoroState.RUNNING,
                 updatedAt = Instant.parse("2026-08-25T00:00:00Z")
             )
-            repository.updateSettings(AppSettings(30, 10))
+            repository.updateSettings(AppSettings(30, 10, com.yuncun.noteapp.domain.model.AppThemeMode.DARK))
             repository.savePomodoroSession(session)
             // 等待旧 DataStore 的协程完全结束，模拟进程重建时文件锁已释放。
             scope.coroutineContext[Job]?.cancelAndJoin()
@@ -56,7 +56,10 @@ class AppPreferencesInstrumentedTest {
             repository = AppPreferencesRepository(
                 PreferenceDataStoreFactory.create(scope = scope, produceFile = { file })
             )
-            assertEquals(AppSettings(30, 10), repository.settings.first())
+            assertEquals(
+                AppSettings(30, 10, com.yuncun.noteapp.domain.model.AppThemeMode.DARK),
+                repository.settings.first()
+            )
             assertEquals(session, repository.pomodoroSession.first())
             repository.clearPomodoroSession()
             assertNull(repository.pomodoroSession.first())

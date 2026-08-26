@@ -31,8 +31,18 @@ class BackupJsonCodecTest {
 
         assertEquals(snapshot, decoded)
         assertTrue("\"formatVersion\": 1" in json)
+        assertTrue("\"themeMode\": \"dark\"" in json)
         assertTrue("pomodoroSession" !in json)
         assertTrue("notificationGranted" !in json)
+    }
+
+    @Test
+    fun legacyJsonWithoutThemeMode_decodesWithDefaultSystemTheme() {
+        val valid = codec.encode(completeSnapshot(), NOW)
+        val legacyJson = valid.replace(Regex(",?\\s*\"themeMode\":\\s*\"dark\""), "")
+
+        val decoded = codec.decodeAndValidate(legacyJson)
+        assertEquals(com.yuncun.noteapp.domain.model.AppThemeMode.SYSTEM, decoded.appSettings.themeMode)
     }
 
     @Test
@@ -111,7 +121,7 @@ class BackupJsonCodecTest {
                     "task", "pool", NOW, NOW
                 )
             ),
-            appSettings = AppSettings(30, 10)
+            appSettings = AppSettings(30, 10, com.yuncun.noteapp.domain.model.AppThemeMode.DARK)
         )
     }
 

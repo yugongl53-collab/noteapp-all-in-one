@@ -46,9 +46,9 @@ class BackupViewModel(private val operations: BackupOperations) : ViewModel() {
                 val content = operations.exportJson()
                 write(content)
             }.onSuccess {
-                _uiState.update { it.copy(isBusy = false, feedback = "已导出到 $fileName") }
+                _uiState.update { it.copy(isBusy = false, feedback = "数据备份已成功导出") }
             }.onFailure { error ->
-                showFailure("导出失败，请重试", error)
+                showFailure("数据备份导出失败，请重试", error)
             }
         }
     }
@@ -62,7 +62,9 @@ class BackupViewModel(private val operations: BackupOperations) : ViewModel() {
                     pendingSnapshot = snapshot
                     _uiState.update { it.copy(isBusy = false, pendingImport = snapshot.toSummary(fileName)) }
                 }
-                .onFailure { error -> showFailure("导入文件校验失败", error) }
+                .onFailure {
+                    _uiState.update { it.copy(isBusy = false, feedback = "文件格式不符合要求或已损坏，未能读取数据") }
+                }
         }
     }
 
@@ -79,14 +81,14 @@ class BackupViewModel(private val operations: BackupOperations) : ViewModel() {
                 .onSuccess { result ->
                     pendingSnapshot = null
                     val cleanup = if (result.expiredIdeasRemoved > 0) {
-                        "，已清理 ${result.expiredIdeasRemoved} 条到期灵感"
+                        "（已自动清理 ${result.expiredIdeasRemoved} 条已过期笔记）"
                     } else ""
-                    val message = result.reminderError?.let { "导入完成$cleanup，但提醒重建失败：$it" }
-                        ?: "数据导入完成$cleanup"
+                    val message = result.reminderError?.let { "数据已成功恢复并同步，但部分提醒未能同步生效：$it$cleanup" }
+                        ?: "数据已成功恢复并同步$cleanup"
                     _uiState.update { it.copy(isBusy = false, pendingImport = null, feedback = message) }
                     onImported()
                 }
-                .onFailure { error -> showFailure("导入失败，原数据已保留", error) }
+                .onFailure { error -> showFailure("数据恢复失败，原有数据未受影响", error) }
         }
     }
 

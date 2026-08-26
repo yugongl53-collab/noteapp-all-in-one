@@ -7,6 +7,7 @@ import com.yuncun.noteapp.data.local.entity.EventPoolItemEntity
 import com.yuncun.noteapp.data.local.entity.IdeaEntity
 import com.yuncun.noteapp.data.local.entity.ScheduleTaskEntity
 import com.yuncun.noteapp.data.local.entity.TimeRecordEntity
+import com.yuncun.noteapp.domain.model.AppThemeMode
 import com.yuncun.noteapp.domain.model.AppSettings
 import com.yuncun.noteapp.domain.model.EventCategory
 import com.yuncun.noteapp.domain.model.ScheduleType
@@ -208,7 +209,11 @@ private fun BackupSnapshot.toDto() = BackupDataDto(
             it.relatedTaskId, it.relatedPoolItemId, it.createdAt.toString(), it.updatedAt.toString()
         )
     },
-    appSettings = AppSettingsDto(appSettings.lastFocusMinutes, appSettings.lastRestMinutes)
+    appSettings = AppSettingsDto(
+        lastFocusMinutes = appSettings.lastFocusMinutes,
+        lastRestMinutes = appSettings.lastRestMinutes,
+        themeMode = appSettings.themeMode.stableId
+    )
 )
 
 private fun BackupDataDto.toSnapshot() = BackupSnapshot(
@@ -256,7 +261,11 @@ private fun BackupDataDto.toSnapshot() = BackupSnapshot(
             parseInstant(it.createdAt, "时间记录创建时间"), parseInstant(it.updatedAt, "时间记录更新时间")
         )
     },
-    appSettings = AppSettings(appSettings.lastFocusMinutes, appSettings.lastRestMinutes)
+    appSettings = AppSettings(
+        lastFocusMinutes = appSettings.lastFocusMinutes,
+        lastRestMinutes = appSettings.lastRestMinutes,
+        themeMode = AppThemeMode.fromStableId(appSettings.themeMode)
+    )
 )
 
 private fun dayOfWeekId(day: DayOfWeek): String = day.name.lowercase(Locale.ROOT)
