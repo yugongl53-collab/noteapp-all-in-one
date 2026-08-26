@@ -320,9 +320,15 @@ fun OverlapConfirmationDialog(onConfirm: () -> Unit, onCancel: () -> Unit) {
     )
 }
 
-/** 日程卡片先进入只读详情，再由用户明确跳转到对应配置表单。 */
+/** 日程卡片先进入只读详情，再由用户明确跳转到对应配置表单或触发删除。 */
 @Composable
-fun ScheduleDetailDialog(instance: ScheduleInstance, onEdit: () -> Unit, onDismiss: () -> Unit) {
+fun ScheduleDetailDialog(
+    instance: ScheduleInstance,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
     val zoneId = ZoneId.systemDefault()
     val start = instance.startAt.atZone(zoneId)
     val end = instance.endAt.atZone(zoneId)
@@ -339,8 +345,33 @@ fun ScheduleDetailDialog(instance: ScheduleInstance, onEdit: () -> Unit, onDismi
             }
         },
         confirmButton = { TextButton(onClick = onEdit) { Text("前往编辑") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("关闭") } }
+        dismissButton = {
+            Row {
+                TextButton(onClick = { showDeleteConfirmation = true }) {
+                    Text("删除", color = MaterialTheme.colorScheme.error)
+                }
+                TextButton(onClick = onDismiss) { Text("关闭") }
+            }
+        }
     )
+
+    if (showDeleteConfirmation) {
+        val typeName = if (instance.source == ScheduleSource.COURSE) "课程" else "普通事件"
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("确认删除${typeName}？") },
+            text = { Text("确定要删除「${instance.title}」吗？删除后无法恢复，并会一并清除相关提醒。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteConfirmation = false
+                    onDelete()
+                }) {
+                    Text("确认删除", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { TextButton(onClick = { showDeleteConfirmation = false }) { Text("取消") } }
+        )
+    }
 }
 
 @Composable

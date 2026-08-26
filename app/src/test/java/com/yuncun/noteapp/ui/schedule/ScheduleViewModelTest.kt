@@ -1,6 +1,7 @@
 package com.yuncun.noteapp.ui.schedule
 
 import com.yuncun.noteapp.data.local.entity.AcademicTermEntity
+import com.yuncun.noteapp.data.local.entity.CourseScheduleEntity
 import com.yuncun.noteapp.data.local.entity.ScheduleTaskEntity
 import com.yuncun.noteapp.data.repository.AcademicTermInput
 import com.yuncun.noteapp.data.repository.CourseScheduleInput
@@ -171,6 +172,60 @@ class ScheduleViewModelTest {
         assertEquals("普通事件已保存", viewModel.uiState.value.feedback)
     }
 
+    @Test
+    fun deleteTask_removesTaskAndSynchronizesReminders() = runTest(dispatcher) {
+        val repository = FakeScheduleRepository(tasks = mutableListOf(task("task", "周会", LocalTime.of(9, 0))))
+        val reminders = FakeReminderCoordinator()
+        val viewModel = viewModel(repository, reminders)
+        advanceUntilIdle()
+
+        viewModel.deleteTask("task")
+        advanceUntilIdle()
+
+        assertEquals(0, repository.tasks.size)
+        assertEquals(0, viewModel.uiState.value.instances.size)
+        assertEquals(1, reminders.synchronizeCount)
+        assertEquals("普通事件已删除", viewModel.uiState.value.feedback)
+    }
+
+    @Test
+    fun deleteCourse_removesCourseAndSynchronizesReminders() = runTest(dispatcher) {
+        val courseEntity = CourseScheduleEntity(
+            id = "course-1",
+            termId = "fall",
+            courseName = "高等数学",
+            location = "一教 101",
+            category = EventCategory.STUDY,
+            weekdays = setOf(DayOfWeek.TUESDAY),
+            startWeek = 1,
+            endWeek = 16,
+            startTime = LocalTime.of(8, 0),
+            endTime = LocalTime.of(9, 35),
+            reminderEnabled = true,
+            reminderAdvanceMinutes = 10,
+            createdAt = now,
+            updatedAt = now
+        )
+        val repository = FakeScheduleRepository(
+            tasks = mutableListOf(),
+            courses = mutableListOf(courseEntity),
+            terms = listOf(term())
+        )
+        val reminders = FakeReminderCoordinator()
+        val viewModel = viewModel(repository, reminders)
+        advanceUntilIdle()
+
+        assertEquals(1, viewModel.uiState.value.instances.size)
+
+        viewModel.deleteCourse("course-1")
+        advanceUntilIdle()
+
+        assertEquals(0, repository.courses.size)
+        assertEquals(0, viewModel.uiState.value.instances.size)
+        assertEquals(1, reminders.synchronizeCount)
+        assertEquals("课程已删除", viewModel.uiState.value.feedback)
+    }
+
     private fun viewModel(
         repository: ScheduleRepository,
         reminders: ReminderCoordinator = FakeReminderCoordinator()
@@ -224,10 +279,11 @@ class ScheduleViewModelTest {
     )
 
     private class FakeScheduleRepository(
-        val tasks: MutableList<ScheduleTaskEntity>,
+        val tasks: MutableList<ScheduleTaskEntity> = mutableListOf(),
+        val courses: MutableList<CourseScheduleEntity> = mutableListOf(),
         private val terms: List<AcademicTermEntity> = emptyList()
     ) : ScheduleRepository {
-        override suspend fun load() = ScheduleSnapshot(terms, tasks.toList(), emptyList())
+        override suspend fun load() = ScheduleSnapshot(terms, tasks.toList(), courses.toList())
         override suspend fun saveTerm(id: String?, input: AcademicTermInput, now: Instant) = error("测试未使用")
         override suspend fun deleteTerm(id: String) = Unit
 
@@ -258,7 +314,9 @@ class ScheduleViewModelTest {
         }
 
         override suspend fun saveCourse(id: String?, input: CourseScheduleInput, now: Instant) = error("测试未使用")
-        override suspend fun deleteCourse(id: String) = Unit
+        override suspend fun deleteCourse(id: String) {
+            courses.removeAll { it.id == id }
+        }
     }
 
     private class FakeReminderCoordinator(
