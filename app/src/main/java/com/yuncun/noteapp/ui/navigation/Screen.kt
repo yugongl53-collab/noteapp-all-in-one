@@ -30,9 +30,27 @@ object IdeaRoutes {
     fun edit(ideaId: String = NEW_ID): String = "ideas/edit/$ideaId"
 }
 
-/** 工具箱（番茄钟与事件抽奖）二级页按入口选择初始分区 */
+/** 工具箱（应用网格门户与独立工具页面）路由定义 */
+object ToolboxRoutes {
+    const val LAUNCHER = "toolbox"
+    const val POMODORO = "toolbox/pomodoro"
+    const val WHEEL = "toolbox/wheel"
+    const val POMODORO_PATTERN = "toolbox/pomodoro?carriedTitle={carriedTitle}"
+
+    fun pomodoro(carriedTitle: String? = null): String {
+        return if (!carriedTitle.isNullOrBlank()) {
+            "toolbox/pomodoro?carriedTitle=${java.net.URLEncoder.encode(carriedTitle, "UTF-8")}"
+        } else {
+            POMODORO
+        }
+    }
+
+    fun wheel(): String = WHEEL
+}
+
+/** 工具箱（番茄钟与事件抽奖）二级页按入口选择初始分区兼容路由 */
 object PomodoroRoutes {
     const val PATTERN = "toolbox/{section}"
-    fun timer(): String = "toolbox/timer"
-    fun pool(): String = "toolbox/pool"
+    fun timer(): String = ToolboxRoutes.pomodoro()
+    fun pool(): String = ToolboxRoutes.wheel()
 }

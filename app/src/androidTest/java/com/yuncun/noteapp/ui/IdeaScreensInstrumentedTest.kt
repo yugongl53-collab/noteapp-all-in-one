@@ -3,10 +3,9 @@ package com.yuncun.noteapp.ui
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performTextInput
 import com.yuncun.noteapp.data.local.entity.IdeaEntity
 import com.yuncun.noteapp.ui.idea.IdeaDraftState
 import com.yuncun.noteapp.ui.idea.IdeaUiState
@@ -16,6 +15,7 @@ import com.yuncun.noteapp.ui.screens.IdeaTrashScreen
 import com.yuncun.noteapp.ui.theme.NoteAppTheme
 import java.time.Instant
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -37,7 +37,7 @@ class IdeaScreensInstrumentedTest {
             }
         }
 
-        composeRule.onNodeWithText("还没有灵感，记录第一条想法吧").assertIsDisplayed()
+        composeRule.onNodeWithText("暂无灵感记录，点击右下角「+」开始记录吧").assertIsDisplayed()
     }
 
     @Test
@@ -76,45 +76,21 @@ class IdeaScreensInstrumentedTest {
     }
 
     @Test
-    fun ideaQuickInput_forwardsTypedContentAndSaveAction() {
-        var typed = ""
-        var saveCount = 0
+    fun ideaList_clickingFabTriggersAdd() {
+        var addClicked = false
         composeRule.setContent {
             NoteAppTheme {
                 IdeaScreen(
                     state = IdeaUiState(isLoading = false),
-                    quickDraft = IdeaDraftState(),
-                    onQuickContentChange = { typed = it },
-                    onQuickTagsChange = {},
-                    onQuickSave = { saveCount += 1 }
+                    onAdd = { addClicked = true },
+                    onEdit = {},
+                    onOpenTrash = {}
                 )
             }
         }
 
-        composeRule.onNodeWithText("现在想到了什么？").performTextInput("需要保留的输入")
-        composeRule.onNodeWithText("保存灵感").performClick()
-
-        assertEquals("需要保留的输入", typed)
-        assertEquals(1, saveCount)
-    }
-
-    @Test
-    fun ideaQuickInput_rendersTagsInputField() {
-        var typedTags = ""
-        composeRule.setContent {
-            NoteAppTheme {
-                IdeaScreen(
-                    state = IdeaUiState(isLoading = false),
-                    quickDraft = IdeaDraftState(),
-                    onQuickContentChange = {},
-                    onQuickTagsChange = { typedTags = it },
-                    onQuickSave = {}
-                )
-            }
-        }
-
-        composeRule.onNodeWithText("标签（可选）").performTextInput("开发, 架构")
-        assertEquals("开发, 架构", typedTags)
+        composeRule.onNodeWithContentDescription("新增灵感").performClick()
+        assertTrue(addClicked)
     }
 
     @Test

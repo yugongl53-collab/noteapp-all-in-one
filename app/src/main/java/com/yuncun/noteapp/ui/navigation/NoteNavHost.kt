@@ -49,10 +49,14 @@ import kotlinx.coroutines.withContext
 import com.yuncun.noteapp.ui.screens.IdeaEditScreen
 import com.yuncun.noteapp.ui.screens.IdeaScreen
 import com.yuncun.noteapp.ui.screens.IdeaTrashScreen
-import com.yuncun.noteapp.ui.screens.PomodoroScreen
+import com.yuncun.noteapp.ui.screens.LuckyWheelToolScreen
 import com.yuncun.noteapp.ui.screens.PomodoroCompactBar
+import com.yuncun.noteapp.ui.screens.PomodoroScreen
+import com.yuncun.noteapp.ui.screens.PomodoroToolScreen
+import com.yuncun.noteapp.ui.screens.SECTION_POOL
 import com.yuncun.noteapp.ui.screens.ScheduleScreen
 import com.yuncun.noteapp.ui.screens.SettingsScreen
+import com.yuncun.noteapp.ui.screens.ToolboxScreen
 
 /**
  * 主界面脚手架与顶层底栏导航容器（日程、灵感、工具箱、设置四大主Tab）
@@ -66,7 +70,6 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
     val ideaFactory = remember(application) { IdeaViewModel.Factory(application.ideaRepository) }
     val ideaViewModel: IdeaViewModel = viewModel(factory = ideaFactory)
     val ideaState by ideaViewModel.uiState.collectAsState()
-    val quickDraft by ideaViewModel.quickDraft.collectAsState()
     val editorDraft by ideaViewModel.editorDraft.collectAsState()
     val scheduleFactory = remember(application) {
         ScheduleViewModel.Factory(
@@ -233,10 +236,6 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
                 composable(Screen.Idea.route) {
                     IdeaScreen(
                         state = ideaState,
-                        quickDraft = quickDraft,
-                        onQuickContentChange = ideaViewModel::updateQuickContent,
-                        onQuickTagsChange = ideaViewModel::updateQuickTags,
-                        onQuickSave = ideaViewModel::saveQuickIdea,
                         onAdd = { navController.navigate(IdeaRoutes.edit()) },
                         onEdit = { navController.navigate(IdeaRoutes.edit(it)) },
                         onOpenTrash = { navController.navigate(IdeaRoutes.TRASH) }
@@ -268,14 +267,29 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
                     )
                 }
                 composable(Screen.Toolbox.route) {
-                    PomodoroScreen(
+                    ToolboxScreen(
                         state = pomodoroState,
-                        initialSection = "timer",
+                        onNavigateToPomodoro = { navController.navigate(ToolboxRoutes.pomodoro()) },
+                        onNavigateToWheel = { navController.navigate(ToolboxRoutes.wheel()) }
+                    )
+                }
+                composable(
+                    route = ToolboxRoutes.POMODORO_PATTERN,
+                    arguments = listOf(
+                        navArgument("carriedTitle") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        }
+                    )
+                ) { backStackEntry ->
+                    val carriedTitle = backStackEntry.arguments?.getString("carriedTitle")?.let {
+                        runCatching { java.net.URLDecoder.decode(it, "UTF-8") }.getOrDefault(it)
+                    }
+                    PomodoroToolScreen(
+                        state = pomodoroState,
                         notificationGranted = reminderPermissions.notificationGranted,
-                        onSavePoolItem = pomodoroViewModel::savePoolItem,
-                        onSetPoolItemEnabled = pomodoroViewModel::setPoolItemEnabled,
-                        onDeletePoolItem = pomodoroViewModel::deletePoolItem,
-                        onDraw = pomodoroViewModel::draw,
+                        initialTitle = carriedTitle,
                         onStart = pomodoroViewModel::startPomodoro,
                         onPause = pomodoroViewModel::pause,
                         onResume = pomodoroViewModel::resume,
@@ -287,34 +301,59 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                             }
-                        }
+                        },
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable(ToolboxRoutes.WHEEL) {
+                    LuckyWheelToolScreen(
+                        state = pomodoroState,
+                        onDraw = pomodoroViewModel::draw,
+                        onCarryToPomodoro = { title ->
+                            navController.navigate(ToolboxRoutes.pomodoro(title))
+                        },
+                        onSavePoolItem = pomodoroViewModel::savePoolItem,
+                        onSetPoolItemEnabled = pomodoroViewModel::setPoolItemEnabled,
+                        onDeletePoolItem = pomodoroViewModel::deletePoolItem,
+                        onBack = { navController.popBackStack() }
                     )
                 }
                 composable(
                     route = PomodoroRoutes.PATTERN,
                     arguments = listOf(navArgument("section") { type = NavType.StringType })
                 ) { backStackEntry ->
-                    PomodoroScreen(
-                        state = pomodoroState,
-                        initialSection = backStackEntry.arguments?.getString("section") ?: "timer",
-                        notificationGranted = reminderPermissions.notificationGranted,
-                        onSavePoolItem = pomodoroViewModel::savePoolItem,
-                        onSetPoolItemEnabled = pomodoroViewModel::setPoolItemEnabled,
-                        onDeletePoolItem = pomodoroViewModel::deletePoolItem,
-                        onDraw = pomodoroViewModel::draw,
-                        onStart = pomodoroViewModel::startPomodoro,
-                        onPause = pomodoroViewModel::pause,
-                        onResume = pomodoroViewModel::resume,
-                        onReset = pomodoroViewModel::reset,
-                        onFinishEarly = pomodoroViewModel::finishEarly,
-                        onStartRest = pomodoroViewModel::startRest,
-                        onClearSession = pomodoroViewModel::clearSession,
-                        onRequestNotificationPermission = {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                            }
-                        }
-                    )
+                    val section = backStackEntry.arguments?.getString("section")
+                    if (section == SECTION_POOL) {
+                        LuckyWheelToolScreen(
+                            state = pomodoroState,
+                            onDraw = pomodoroViewModel::draw,
+                            onCarryToPomodoro = { title ->
+                                navController.navigate(ToolboxRoutes.pomodoro(title))
+                            },
+                            onSavePoolItem = pomodoroViewModel::savePoolItem,
+                            onSetPoolItemEnabled = pomodoroViewModel::setPoolItemEnabled,
+                            onDeletePoolItem = pomodoroViewModel::deletePoolItem,
+                            onBack = { navController.popBackStack() }
+                        )
+                    } else {
+                        PomodoroToolScreen(
+                            state = pomodoroState,
+                            notificationGranted = reminderPermissions.notificationGranted,
+                            onStart = pomodoroViewModel::startPomodoro,
+                            onPause = pomodoroViewModel::pause,
+                            onResume = pomodoroViewModel::resume,
+                            onReset = pomodoroViewModel::reset,
+                            onFinishEarly = pomodoroViewModel::finishEarly,
+                            onStartRest = pomodoroViewModel::startRest,
+                            onClearSession = pomodoroViewModel::clearSession,
+                            onRequestNotificationPermission = {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                }
+                            },
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
                 }
                 composable(Screen.Settings.route) {
                     val appSettings by application.preferencesRepository.settings.collectAsState(
@@ -363,11 +402,11 @@ fun NoteNavHost(modifier: Modifier = Modifier) {
                 }
             }
             pomodoroState.session?.let { session ->
-                if (currentRoute != Screen.Toolbox.route && currentRoute != PomodoroRoutes.PATTERN) {
+                if (currentRoute?.startsWith("toolbox") != true) {
                     PomodoroCompactBar(
                         session = session,
                         remainingSeconds = pomodoroState.remainingSeconds,
-                        onClick = { navController.navigate(PomodoroRoutes.timer()) }
+                        onClick = { navController.navigate(ToolboxRoutes.pomodoro()) }
                     )
                 }
             }

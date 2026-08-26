@@ -122,27 +122,29 @@ class PomodoroScreensInstrumentedTest {
     }
 
     @Test
-    fun toolbox_displaysBothPomodoroAndEventPoolCards() {
+    fun toolbox_displaysLauncherGridWithPomodoroAndWheelTiles() {
+        var pomodoroClicked = false
+        var wheelClicked = false
         composeRule.setContent {
             NoteAppTheme {
-                screen(
-                    PomodoroUiState(
-                        isLoading = false,
-                        poolItems = listOf(
-                            com.yuncun.noteapp.data.local.entity.EventPoolItemEntity(
-                                "1", "背单词", EventCategory.STUDY, true, Instant.now(), Instant.now()
-                            )
-                        )
-                    ),
-                    SECTION_TIMER
+                ToolboxScreen(
+                    state = PomodoroUiState(isLoading = false),
+                    onNavigateToPomodoro = { pomodoroClicked = true },
+                    onNavigateToWheel = { wheelClicked = true }
                 )
             }
         }
 
+        composeRule.onNodeWithText("工具箱").assertIsDisplayed()
+        composeRule.onNodeWithText("个人效率与决策小工具集合").assertIsDisplayed()
         composeRule.onNodeWithText("番茄钟").assertIsDisplayed()
-        composeRule.onNodeWithText("事件池与抽奖").assertIsDisplayed()
-        composeRule.onNodeWithText("启用 1 / 1 项").assertIsDisplayed()
-        composeRule.onNodeWithText("管理事件池").assertIsDisplayed()
+        composeRule.onNodeWithText("幸运大转盘").assertIsDisplayed()
+
+        composeRule.onNodeWithText("番茄钟").performClick()
+        assertTrue(pomodoroClicked)
+
+        composeRule.onNodeWithText("幸运大转盘").performClick()
+        assertTrue(wheelClicked)
     }
 
     @Test
@@ -164,7 +166,7 @@ class PomodoroScreensInstrumentedTest {
                             )
                         )
                     ),
-                    SECTION_TIMER
+                    SECTION_POOL
                 )
             }
         }
@@ -189,7 +191,7 @@ class PomodoroScreensInstrumentedTest {
                         ),
                         selectedCandidate = candidate
                     ),
-                    SECTION_TIMER
+                    SECTION_POOL
                 )
             }
         }
