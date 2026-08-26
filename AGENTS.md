@@ -20,6 +20,16 @@
 
 新增文件放入职责最接近的现有目录。MVP 继续使用单 `app` 模块，不为未确认需求预建模块或抽象层。
 
+## 本仓库的分支与 worktree
+
+- 任何代码或文档修改都必须从最新 `main` 创建独立分支，禁止直接在 `main` 上工作或提交。
+- `/home/yuncun/111project/noteapp all-in-one` 是主工作目录。创建分支前若本地只有 `main`，第一个功能分支可以与 `main` 串行共用该目录。
+- 创建分支前若已经有两个或更多本地分支，任何新分支都必须使用 `git worktree add` 创建独立工作目录；一个额外分支对应一个 `worktree`，不得复用或切换现有功能分支的工作目录。
+- 本仓库的新 `worktree` 放在项目上一级目录 `/home/yuncun/111project/`，使用 `noteapp-<任务简称>` 形式的唯一目录名，并从最新 `main` 派生。
+- 创建前必须检查 `git status`、本地分支和 `git worktree list`。工作目录存在未提交改动时不得切换分支、暂存到其他任务或移动这些改动。
+- Pull Request 保留分支上的独立提交，禁止提前压缩提交；CI 通过后使用普通 merge commit 合并，禁止 squash merge 或 rebase merge。
+- PR 合并后，主工作目录中的功能分支切回 `main` 再删除；独立工作目录中的功能分支先移除对应 `worktree`，再删除本地分支，并清理远程分支。
+
 ## 技术基线
 
 - Kotlin `2.0.21`、Android Gradle Plugin `8.7.3`、Jetpack Compose 和 Material 3。
