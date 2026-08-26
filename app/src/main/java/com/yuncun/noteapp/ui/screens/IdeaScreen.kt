@@ -3,36 +3,37 @@ package com.yuncun.noteapp.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.yuncun.noteapp.data.local.entity.IdeaEntity
-import com.yuncun.noteapp.ui.idea.IdeaUiState
-
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import com.yuncun.noteapp.ui.idea.IdeaDraftState
+import com.yuncun.noteapp.ui.idea.IdeaUiState
 
 /** 灵感主列表呈现快速记录输入、加载状态、空数据和按最后更新时间倒序的真实 Room 数据。 */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,23 +52,6 @@ fun IdeaScreen(
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = { Text("灵感") },
-                navigationIcon = {
-                    if (onBack != null) {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                        }
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onOpenTrash) {
-                        Icon(Icons.Default.DeleteOutline, contentDescription = "回收站")
-                    }
-                }
-            )
-        },
         floatingActionButton = {
             FloatingActionButton(onClick = onAdd) {
                 Icon(Icons.Default.Add, contentDescription = "新增灵感")
@@ -81,6 +65,7 @@ fun IdeaScreen(
             onQuickTagsChange = onQuickTagsChange,
             onQuickSave = onQuickSave,
             onEdit = onEdit,
+            onOpenTrash = onOpenTrash,
             modifier = Modifier.padding(innerPadding)
         )
     }
@@ -94,6 +79,7 @@ private fun IdeaListContent(
     onQuickTagsChange: (String) -> Unit,
     onQuickSave: () -> Unit,
     onEdit: (String) -> Unit,
+    onOpenTrash: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -107,7 +93,8 @@ private fun IdeaListContent(
                 draft = quickDraft,
                 onContentChange = onQuickContentChange,
                 onTagsChange = onQuickTagsChange,
-                onSave = onQuickSave
+                onSave = onQuickSave,
+                onOpenTrash = onOpenTrash
             )
         }
 
@@ -153,6 +140,7 @@ fun QuickIdeaCard(
     onContentChange: (String) -> Unit,
     onTagsChange: (String) -> Unit,
     onSave: () -> Unit,
+    onOpenTrash: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Card(modifier = modifier.fillMaxWidth()) {
@@ -160,7 +148,22 @@ fun QuickIdeaCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("快速记录灵感", style = MaterialTheme.typography.titleMedium)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("快速记录灵感", style = MaterialTheme.typography.titleMedium)
+                TextButton(onClick = onOpenTrash) {
+                    Icon(
+                        Icons.Default.DeleteOutline,
+                        contentDescription = "回收站",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text("回收站")
+                }
+            }
             OutlinedTextField(
                 value = draft.content,
                 onValueChange = onContentChange,
