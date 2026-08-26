@@ -170,8 +170,8 @@ fun TermEditorDialog(
                 FilterChip(selected = season == value, onClick = { season = value }, label = { Text(if (value == TermSeason.FALL) "秋季" else "春季") })
             }
         }
-        OutlinedTextField(startDate, { startDate = it; error = null }, label = { Text("开始日期 YYYY-MM-DD") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(endDate, { endDate = it; error = null }, label = { Text("结束日期 YYYY-MM-DD") }, modifier = Modifier.fillMaxWidth())
+        SegmentedDateField(startDate, { startDate = it; error = null }, label = "开始日期 YYYY-MM-DD", includeYear = true, modifier = Modifier.fillMaxWidth())
+        SegmentedDateField(endDate, { endDate = it; error = null }, label = "结束日期 YYYY-MM-DD", includeYear = true, modifier = Modifier.fillMaxWidth())
         FormError(error)
         Button(onClick = {
             runCatching {
@@ -219,9 +219,10 @@ fun TaskEditorDialog(
             FilterChip(selected = type == ScheduleType.WEEKLY, onClick = { type = ScheduleType.WEEKLY }, label = { Text("每周") })
         }
         if (type == ScheduleType.WEEKLY) WeekdaySelector(weekdays) { weekdays = it }
-        OutlinedTextField(
+        SegmentedDateField(
             dateInput, { dateInput = it; error = null },
-            label = { Text(if (type == ScheduleType.WEEKLY) "生效日期 MM-DD" else "事件日期 MM-DD") },
+            label = if (type == ScheduleType.WEEKLY) "生效日期 MM-DD" else "事件日期 MM-DD",
+            includeYear = false,
             modifier = Modifier.fillMaxWidth()
         )
         TimeFields(startTime, { startTime = it }, endTime, { endTime = it })
@@ -421,8 +422,8 @@ private fun WeekdaySelector(selected: Set<DayOfWeek>, onChange: (Set<DayOfWeek>)
 @Composable
 private fun TimeFields(start: String, onStart: (String) -> Unit, end: String, onEnd: (String) -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(start, onStart, label = { Text("开始 HH:mm") }, modifier = Modifier.weight(1f))
-        OutlinedTextField(end, onEnd, label = { Text("结束 HH:mm") }, modifier = Modifier.weight(1f))
+        SegmentedTimeField(start, onStart, label = "开始 HH:mm", modifier = Modifier.weight(1f))
+        SegmentedTimeField(end, onEnd, label = "结束 HH:mm", modifier = Modifier.weight(1f))
     }
 }
 

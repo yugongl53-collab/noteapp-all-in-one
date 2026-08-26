@@ -366,18 +366,17 @@ private fun DateTimeFields(
     onTimeChange: (String) -> Unit
 ) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(
+        SegmentedDateField(
             value = date,
             onValueChange = onDateChange,
-            label = { Text("${prefix}日期 YYYY-MM-DD") },
-            singleLine = true,
+            label = "${prefix}日期 YYYY-MM-DD",
+            includeYear = true,
             modifier = Modifier.weight(1.35f)
         )
-        OutlinedTextField(
+        SegmentedTimeField(
             value = time,
             onValueChange = onTimeChange,
-            label = { Text("${prefix}时间 HH:mm") },
-            singleLine = true,
+            label = "${prefix}时间 HH:mm",
             modifier = Modifier.weight(1f)
         )
     }
