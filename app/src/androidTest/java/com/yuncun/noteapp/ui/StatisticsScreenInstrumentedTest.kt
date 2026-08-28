@@ -93,11 +93,48 @@ class StatisticsScreenInstrumentedTest {
         val state = emptyState().copy(visibleRecords = listOf(record), records = listOf(record))
         composeRule.setContent { NoteAppTheme { screen(state, onDelete = { deletedId = it }) } }
 
-        composeRule.onNodeWithContentDescription("删除写作").performScrollTo().performClick()
+        composeRule.onNodeWithText("查看记录明细 (1条)").performClick()
+        composeRule.onNodeWithContentDescription("删除写作").performClick()
         composeRule.onNodeWithText("永久删除后无法恢复，相关日周统计和快捷名称会立即重算。").assertIsDisplayed()
         composeRule.onNodeWithText("永久删除").performClick()
 
         assertEquals("record", deletedId)
+    }
+
+    @Test
+    fun recordDetailsButton_showsCountAndOpensDialog() {
+        val record = record()
+        val state = emptyState().copy(visibleRecords = listOf(record), records = listOf(record))
+        composeRule.setContent { NoteAppTheme { screen(state) } }
+
+        composeRule.onNodeWithText("查看记录明细 (1条)").assertIsDisplayed().performClick()
+        composeRule.onNodeWithText("时间记录明细 (1条)").assertIsDisplayed()
+        composeRule.onNodeWithText("写作").assertIsDisplayed()
+        composeRule.onNodeWithText("关闭").performClick()
+        composeRule.onNodeWithText("时间记录明细 (1条)").assertDoesNotExist()
+    }
+
+    @Test
+    fun edit_fromRecordDetailsDialog_triggersCallback() {
+        var editedId: String? = null
+        val record = record()
+        val state = emptyState().copy(visibleRecords = listOf(record), records = listOf(record))
+        composeRule.setContent {
+            NoteAppTheme {
+                StatisticsScreen(
+                    state = state,
+                    draft = TimeRecordDraftState(),
+                    onSelectPeriod = {}, onSelectRanking = {}, onPreviousPeriod = {}, onNextPeriod = {},
+                    onCurrentPeriod = {}, onRetry = {}, onAddRecord = {}, onEditRecord = { editedId = it }, onDeleteRecord = {},
+                    onUpdateTitle = {}, onUpdateCategory = {}, onUpdateStartDate = {}, onUpdateStartTime = {},
+                    onUpdateEndDate = {}, onUpdateEndTime = {}, onSaveDraft = {}, onDismissEditor = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("查看记录明细 (1条)").performClick()
+        composeRule.onNodeWithContentDescription("编辑写作").performClick()
+        assertEquals("record", editedId)
     }
 
     @androidx.compose.runtime.Composable
