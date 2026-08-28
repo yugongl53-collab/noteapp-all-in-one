@@ -35,8 +35,7 @@ data class TitleRankingItem(
 data class DailyTimeSummary(
     val date: LocalDate,
     val totalMinutes: Long,
-    val recordedMinutes: Long,
-    val otherMinutes: Long
+    val recordedMinutes: Long
 )
 
 data class TimeStatistics(
@@ -44,7 +43,6 @@ data class TimeStatistics(
     val endDate: LocalDate,
     val totalMinutes: Long,
     val recordedMinutes: Long,
-    val otherMinutes: Long,
     val categoryRanking: List<CategoryRankingItem>,
     val titleRanking: List<TitleRankingItem>,
     val dailySummaries: List<DailyTimeSummary>
@@ -105,8 +103,7 @@ object TimeRecordRules {
             DailyTimeSummary(
                 date = date,
                 totalMinutes = dayMinutes,
-                recordedMinutes = recordedMinutes,
-                otherMinutes = (dayMinutes - recordedMinutes).coerceAtLeast(0)
+                recordedMinutes = recordedMinutes
             )
         }.toList()
 
@@ -130,7 +127,6 @@ object TimeRecordRules {
             endDate = endDate,
             totalMinutes = totalMinutes,
             recordedMinutes = recordedMinutes,
-            otherMinutes = (totalMinutes - recordedMinutes).coerceAtLeast(0),
             categoryRanking = categoryRanking,
             titleRanking = titleRanking,
             dailySummaries = dailySummaries

@@ -5,17 +5,16 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 
-/** 固定事件性质；OTHER 仅用于统计派生，不能写入业务实体。 */
+/** 固定事件性质。 */
 enum class EventCategory(val stableId: String, val displayName: String) {
     WORK("work", "工作"),
     STUDY("study", "学习"),
     HIGH_QUALITY_ENTERTAINMENT("high_quality_entertainment", "高质量娱乐"),
     LOW_QUALITY_ENTERTAINMENT("low_quality_entertainment", "低质量娱乐"),
-    SOCIAL("social", "社交"),
-    OTHER("other", "其他");
+    SOCIAL("social", "社交");
 
     companion object {
-        val selectable = entries.filterNot { it == OTHER }
+        val selectable = entries
 
         /** 将持久化稳定标识还原为枚举，未知值必须显式失败。 */
         fun fromStableId(value: String): EventCategory =

@@ -37,7 +37,7 @@ class TimeRecordRulesTest {
     }
 
     @Test
-    fun statistics_emptyDayReportsAllMinutesAsOther() {
+    fun statistics_emptyDayReportsZeroRecordedMinutes() {
         val statistics = TimeRecordRules.calculateStatistics(
             emptyList(),
             LocalDate.parse("2026-08-25"),
@@ -47,7 +47,6 @@ class TimeRecordRulesTest {
 
         assertEquals(1440, statistics.totalMinutes)
         assertEquals(0, statistics.recordedMinutes)
-        assertEquals(1440, statistics.otherMinutes)
         assertTrue(statistics.categoryRanking.isEmpty())
         assertTrue(statistics.titleRanking.isEmpty())
     }

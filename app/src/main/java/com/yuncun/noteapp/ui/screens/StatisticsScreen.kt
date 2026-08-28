@@ -52,7 +52,7 @@ import com.yuncun.noteapp.ui.statistics.TimeRecordDraftState
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-/** M6 统计页：只展示手动时间记录生成的日周榜单、明细和未记录时长。 */
+/** M6 统计页：展示手动时间记录生成的日周榜单与明细。 */
 @Composable
 fun StatisticsScreen(
     state: StatisticsUiState,
@@ -96,7 +96,6 @@ fun StatisticsScreen(
             ErrorCard(state.loadError, onRetry)
         } else if (statistics != null) {
             if (state.loadError != null) ErrorCard(state.loadError, onRetry)
-            OtherTimeCard(statistics)
             RankingSelector(state.ranking, onSelectRanking)
             RankingList(statistics, state.ranking)
             if (state.period == StatisticsPeriod.WEEK) DailyBreakdown(statistics)
@@ -184,21 +183,6 @@ private fun ErrorCard(message: String, onRetry: () -> Unit) {
 }
 
 @Composable
-private fun OtherTimeCard(statistics: TimeStatistics) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("未记录时间（其他）", style = MaterialTheme.typography.titleMedium)
-            Text(formatMinutes(statistics.otherMinutes), style = MaterialTheme.typography.headlineSmall)
-            Text(
-                "已记录 ${formatMinutes(statistics.recordedMinutes)} / 自然时段 ${formatMinutes(statistics.totalMinutes)}",
-                style = MaterialTheme.typography.bodySmall
-            )
-            Text("“其他”是未记录时间摘要，不是事件性质，也不进入排行榜。", style = MaterialTheme.typography.bodySmall)
-        }
-    }
-}
-
-@Composable
 private fun RankingSelector(ranking: StatisticsRanking, onSelect: (StatisticsRanking) -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         FilterChip(
@@ -252,9 +236,9 @@ private fun DailyBreakdown(statistics: TimeStatistics) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("每日精确时长", style = MaterialTheme.typography.titleMedium)
             statistics.dailySummaries.forEach { day ->
-                Row(Modifier.fillMaxWidth()) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(day.date.format(DateTimeFormatter.ofPattern("MM-dd E")), modifier = Modifier.weight(1f))
-                    Text("记录 ${formatMinutes(day.recordedMinutes)} · 其他 ${formatMinutes(day.otherMinutes)}")
+                    Text(formatMinutes(day.recordedMinutes), fontWeight = FontWeight.Medium)
                 }
             }
         }

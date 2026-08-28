@@ -1530,7 +1530,6 @@ private fun categoryColor(category: EventCategory): Color = when (category) {
     EventCategory.HIGH_QUALITY_ENTERTAINMENT -> Color(0xFF059669)
     EventCategory.LOW_QUALITY_ENTERTAINMENT -> Color(0xFFD97706)
     EventCategory.SOCIAL -> Color(0xFFDB2777)
-    EventCategory.OTHER -> Color(0xFF64748B)
 }
 
 /**
