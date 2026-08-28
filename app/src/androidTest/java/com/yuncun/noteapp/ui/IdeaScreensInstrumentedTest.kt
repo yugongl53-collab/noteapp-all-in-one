@@ -94,6 +94,26 @@ class IdeaScreensInstrumentedTest {
     }
 
     @Test
+    fun ideaList_doesNotDisplayIdeaHeaderTitle_andTrashButtonWorks() {
+        var trashClicked = false
+        composeRule.setContent {
+            NoteAppTheme {
+                IdeaScreen(
+                    state = IdeaUiState(isLoading = false),
+                    onAdd = {},
+                    onEdit = {},
+                    onOpenTrash = { trashClicked = true }
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("灵感").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("回收站").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("回收站").performClick()
+        assertTrue(trashClicked)
+    }
+
+    @Test
     fun editor_requiresConfirmationBeforeMovingIdeaToTrash() {
         var deletedId: String? = null
         composeRule.setContent {
