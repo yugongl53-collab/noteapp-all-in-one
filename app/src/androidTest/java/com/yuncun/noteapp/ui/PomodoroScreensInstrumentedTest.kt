@@ -12,6 +12,7 @@ import com.yuncun.noteapp.domain.model.PomodoroPhase
 import com.yuncun.noteapp.domain.model.PomodoroSession
 import com.yuncun.noteapp.domain.model.PomodoroState
 import com.yuncun.noteapp.ui.pomodoro.PomodoroUiState
+import com.yuncun.noteapp.ui.screens.EventPoolManagerDialog
 import com.yuncun.noteapp.ui.screens.PomodoroScreen
 import com.yuncun.noteapp.ui.screens.ToolboxScreen
 import com.yuncun.noteapp.ui.screens.PoolItemEditorDialog
@@ -198,6 +199,45 @@ class PomodoroScreensInstrumentedTest {
 
         composeRule.onNodeWithText("算法刷题").assertIsDisplayed()
         composeRule.onNodeWithText("带入番茄钟").performClick()
+    }
+
+    @Test
+    fun eventPoolManagerDialog_displaysFabAndTriggersAddNew() {
+        var addNewClicked = false
+        var dismissed = false
+        var editItem: com.yuncun.noteapp.data.local.entity.EventPoolItemEntity? = null
+
+        val item1 = com.yuncun.noteapp.data.local.entity.EventPoolItemEntity(
+            "1", "背单词", EventCategory.STUDY, true, Instant.now(), Instant.now(), weight = 2
+        )
+
+        composeRule.setContent {
+            NoteAppTheme {
+                EventPoolManagerDialog(
+                    state = PomodoroUiState(
+                        isLoading = false,
+                        poolItems = listOf(item1)
+                    ),
+                    onDismiss = { dismissed = true },
+                    onAddNew = { addNewClicked = true },
+                    onEdit = { editItem = it },
+                    onSetEnabled = { _, _ -> },
+                    onDelete = { }
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("管理事件池").assertIsDisplayed()
+        composeRule.onNodeWithText("背单词").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("新增事件池项目").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("新增事件池项目").performClick()
+        assertTrue(addNewClicked)
+
+        composeRule.onNodeWithContentDescription("编辑背单词").performClick()
+        assertEquals("1", editItem?.id)
+
+        composeRule.onNodeWithContentDescription("关闭").performClick()
+        assertTrue(dismissed)
     }
 
     @androidx.compose.runtime.Composable
