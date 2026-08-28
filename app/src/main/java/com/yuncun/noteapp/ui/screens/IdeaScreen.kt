@@ -3,22 +3,22 @@ package com.yuncun.noteapp.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,8 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.yuncun.noteapp.data.local.entity.IdeaEntity
 import com.yuncun.noteapp.ui.idea.IdeaUiState
 
-/** 灵感主列表呈现顶部标题与回收站入口、加载状态、空数据和按最后更新时间倒序的灵感卡片列表。 */
-@OptIn(ExperimentalMaterial3Api::class)
+/** 灵感主列表呈现顶部轻量回收站入口、加载状态、空数据和按最后更新时间倒序的灵感卡片列表。 */
 @Composable
 fun IdeaScreen(
     state: IdeaUiState,
@@ -39,27 +38,41 @@ fun IdeaScreen(
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = { Text("灵感") },
-                actions = {
-                    IconButton(onClick = onOpenTrash) {
-                        Icon(Icons.Default.DeleteOutline, contentDescription = "回收站")
-                    }
-                }
-            )
-        },
         floatingActionButton = {
             FloatingActionButton(onClick = onAdd) {
                 Icon(Icons.Default.Add, contentDescription = "新增灵感")
             }
         }
     ) { innerPadding ->
-        IdeaListContent(
-            state = state,
-            onEdit = onEdit,
-            modifier = Modifier.padding(innerPadding)
-        )
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+        ) {
+            // 顶部轻量操作栏（右上角放置回收站入口，不展示多余页面标题）
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = if (onBack != null) Arrangement.SpaceBetween else Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (onBack != null) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                    }
+                }
+                IconButton(onClick = onOpenTrash) {
+                    Icon(Icons.Default.DeleteOutline, contentDescription = "回收站")
+                }
+            }
+
+            IdeaListContent(
+                state = state,
+                onEdit = onEdit,
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }
 
@@ -71,7 +84,7 @@ private fun IdeaListContent(
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 88.dp),
+        contentPadding = PaddingValues(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 88.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         when {

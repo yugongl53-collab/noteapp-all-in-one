@@ -137,24 +137,10 @@ fun ToolboxScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+            .padding(horizontal = 16.dp)
+            .padding(top = 12.dp, bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 门户头部标头
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = "工具箱",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                text = "个人效率与决策小工具集合",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
         // 2 列网格布局展示方形小工具磁贴
         Row(
             modifier = Modifier.fillMaxWidth(),

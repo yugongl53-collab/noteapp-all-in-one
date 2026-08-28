@@ -135,8 +135,8 @@ class PomodoroScreensInstrumentedTest {
             }
         }
 
-        composeRule.onNodeWithText("工具箱").assertIsDisplayed()
-        composeRule.onNodeWithText("个人效率与决策小工具集合").assertIsDisplayed()
+        composeRule.onNodeWithText("工具箱").assertDoesNotExist()
+        composeRule.onNodeWithText("个人效率与决策小工具集合").assertDoesNotExist()
         composeRule.onNodeWithText("番茄钟").assertIsDisplayed()
         composeRule.onNodeWithText("幸运大转盘").assertIsDisplayed()
 
