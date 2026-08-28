@@ -11,10 +11,13 @@ import org.junit.Test
 /** 验证固定事件性质和用户文本规范化的公共契约。 */
 class CommonRulesTest {
     @Test
-    fun selectableCategories_excludesDerivedOtherCategory() {
+    fun selectableCategories_containsAllFiveCategories() {
         assertEquals(5, EventCategory.selectable.size)
-        assertFalse(EventCategory.selectable.contains(EventCategory.OTHER))
+        assertTrue(EventCategory.selectable.contains(EventCategory.WORK))
         assertTrue(EventCategory.selectable.contains(EventCategory.STUDY))
+        assertTrue(EventCategory.selectable.contains(EventCategory.HIGH_QUALITY_ENTERTAINMENT))
+        assertTrue(EventCategory.selectable.contains(EventCategory.LOW_QUALITY_ENTERTAINMENT))
+        assertTrue(EventCategory.selectable.contains(EventCategory.SOCIAL))
     }
 
     @Test

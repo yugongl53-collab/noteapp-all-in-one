@@ -31,11 +31,10 @@ class StatisticsScreenInstrumentedTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun emptyDay_showsOtherSummaryAndManualEntry() {
+    fun emptyDay_showsEmptyRankingAndManualEntry() {
         composeRule.setContent { NoteAppTheme { screen(emptyState()) } }
 
         composeRule.onNodeWithText("该时段还没有时间记录。").assertIsDisplayed()
-        composeRule.onNodeWithText("未记录时间（其他）").assertIsDisplayed()
         composeRule.onNodeWithText("手动录入").assertIsDisplayed()
     }
 
