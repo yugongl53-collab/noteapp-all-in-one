@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
@@ -77,6 +78,7 @@ fun StatisticsScreen(
     modifier: Modifier = Modifier
 ) {
     var pendingDeleteId by remember { mutableStateOf<String?>(null) }
+    var showRecordDetails by remember { mutableStateOf(false) }
     val statistics = state.statistics
 
     Column(
@@ -99,18 +101,35 @@ fun StatisticsScreen(
             RankingSelector(state.ranking, onSelectRanking)
             RankingList(statistics, state.ranking)
             if (state.period == StatisticsPeriod.WEEK) DailyBreakdown(statistics)
-            FilledTonalButton(onClick = onAddRecord, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Default.Add, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("手动录入")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilledTonalButton(onClick = onAddRecord, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(Modifier.width(4.dp))
+                    Text("手动录入")
+                }
+                OutlinedButton(
+                    onClick = { showRecordDetails = true },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.FormatListBulleted, contentDescription = null)
+                    Spacer(Modifier.width(4.dp))
+                    Text("查看记录明细 (${state.visibleRecords.size}条)")
+                }
             }
-            RecordList(
-                records = state.visibleRecords,
-                onEdit = onEditRecord,
-                onDelete = { pendingDeleteId = it }
-            )
         }
         Spacer(Modifier.height(12.dp))
+    }
+
+    if (showRecordDetails) {
+        RecordDetailsDialog(
+            records = state.visibleRecords,
+            onEdit = onEditRecord,
+            onDelete = { pendingDeleteId = it },
+            onDismiss = { showRecordDetails = false }
+        )
     }
 
     if (draft.isOpen) {
@@ -245,34 +264,52 @@ private fun DailyBreakdown(statistics: TimeStatistics) {
     }
 }
 
+/** 明细弹窗展示当前时段所有时间记录，支持编辑与删除。 */
 @Composable
-private fun RecordList(
+fun RecordDetailsDialog(
     records: List<TimeRecordEntity>,
     onEdit: (String) -> Unit,
-    onDelete: (String) -> Unit
+    onDelete: (String) -> Unit,
+    onDismiss: () -> Unit
 ) {
-    Text("本时段记录明细", style = MaterialTheme.typography.titleMedium)
-    if (records.isEmpty()) {
-        Text("暂无明细，点击“手动录入”记录实际活动。")
-        return
-    }
-    records.forEach { record ->
-        Card(Modifier.fillMaxWidth()) {
-            Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(record.title, fontWeight = FontWeight.Medium)
-                    Text(record.category.displayName, style = MaterialTheme.typography.bodySmall)
-                    Text(formatRange(record), style = MaterialTheme.typography.bodySmall)
-                }
-                IconButton(onClick = { onEdit(record.id) }) {
-                    Icon(Icons.Default.Edit, contentDescription = "编辑${record.title}")
-                }
-                IconButton(onClick = { onDelete(record.id) }) {
-                    Icon(Icons.Default.Delete, contentDescription = "删除${record.title}")
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("时间记录明细 (${records.size}条)") },
+        text = {
+            if (records.isEmpty()) {
+                Text("暂无明细，点击“手动录入”记录实际活动。")
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    records.forEach { record ->
+                        Card(Modifier.fillMaxWidth()) {
+                            Row(
+                                Modifier.fillMaxWidth().padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(record.title, fontWeight = FontWeight.Medium)
+                                    Text(record.category.displayName, style = MaterialTheme.typography.bodySmall)
+                                    Text(formatRange(record), style = MaterialTheme.typography.bodySmall)
+                                }
+                                IconButton(onClick = { onEdit(record.id) }) {
+                                    Icon(Icons.Default.Edit, contentDescription = "编辑${record.title}")
+                                }
+                                IconButton(onClick = { onDelete(record.id) }) {
+                                    Icon(Icons.Default.Delete, contentDescription = "删除${record.title}")
+                                }
+                            }
+                        }
+                    }
                 }
             }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("关闭") }
         }
-    }
+    )
 }
 
 /** 录入弹窗保留原始文本，格式或持久化失败后用户可以原地修正并重试。 */
