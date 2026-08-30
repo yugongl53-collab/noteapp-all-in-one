@@ -85,8 +85,6 @@ fun StatisticsScreen(
         modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("时间统计", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("统计只来自手动录入的实际时间记录。", style = MaterialTheme.typography.bodySmall)
         PeriodSelector(state.period, onSelectPeriod)
         RangeNavigator(state, onPreviousPeriod, onNextPeriod, onCurrentPeriod)
 
