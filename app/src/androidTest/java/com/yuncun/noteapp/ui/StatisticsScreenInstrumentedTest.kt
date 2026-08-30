@@ -39,6 +39,17 @@ class StatisticsScreenInstrumentedTest {
     }
 
     @Test
+    fun header_startsWithPeriodControlsWithoutRedundantCopy() {
+        composeRule.setContent { NoteAppTheme { screen(emptyState()) } }
+
+        composeRule.onNodeWithText("时间统计").assertDoesNotExist()
+        composeRule.onNodeWithText("统计只来自手动录入的实际时间记录。").assertDoesNotExist()
+        composeRule.onNodeWithText("日").assertIsDisplayed()
+        composeRule.onNodeWithText("周").assertIsDisplayed()
+        composeRule.onNodeWithText("2026-08-25").assertIsDisplayed()
+    }
+
+    @Test
     fun categoryRanking_showsRankNameAndExactDuration() {
         val record = record()
         val statistics = TimeRecordRules.calculateStatistics(
